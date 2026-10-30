@@ -30,6 +30,7 @@ import {
   detailsSchema,
   detailsSummarySchema,
   detailsSummaryView,
+  remarkSummaryMarkers,
   detailsView,
   remarkDetails,
 } from '../editor/details'
@@ -122,10 +123,7 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
     null,
   )
   const [details, setDetails] = useState<{ summary: string; body: string } | null>(null)
-  const [block, setBlock] = useState<{ level: number | null; inSummary: boolean }>({
-    level: null,
-    inSummary: false,
-  })
+  const [headingLevel, setHeadingLevel] = useState<number | null>(null)
 
   useEffect(() => {
     const host = hostRef.current
@@ -147,6 +145,7 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
       .use(remarkHtmlBlocks)
       .use(commonmark)
       .use(gfm)
+      .use(remarkSummaryMarkers)
       .use(history)
       .use(clipboard)
       .use(listener)
@@ -206,7 +205,10 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
             let tr
             if (/^<details/i.test(trimmed) && detailsType && summaryType && bodyType) {
               const at = state.selection.from
-              const summary = summaryType.create(null, state.schema.text('Summary'))
+              const summary = summaryType.create(
+                null,
+                state.schema.nodes.paragraph.create(null, state.schema.text('Summary')),
+              )
               const body = bodyType.create(null, state.schema.nodes.paragraph.create())
               const node = detailsType.create(null, [summary, body])
               tr = state.tr.replaceSelectionWith(node)
@@ -223,7 +225,7 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
                 return true
               })
 
-              const start = detailsPos === null ? null : detailsPos + 2
+              const start = detailsPos === null ? null : detailsPos + 3
               if (start !== null) {
                 try {
                   tr.setSelection(TextSelection.create(tr.doc, start, start + 'Summary'.length))
@@ -274,20 +276,8 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
         editor.action((ctx) => {
           const view = ctx.get(editorViewCtx)
           const { $from } = view.state.selection
-          let inSummary = false
-          for (let depth = $from.depth; depth > 0; depth -= 1) {
-            if ($from.node(depth).type.name === 'details_summary') {
-              inSummary = true
-              break
-            }
-          }
           const parent = $from.parent
-          const level = parent.type.name === 'heading' ? (parent.attrs.level as number) : null
-          setBlock((current) =>
-            current.level === level && current.inSummary === inSummary
-              ? current
-              : { level, inSummary },
-          )
+          setHeadingLevel(parent.type.name === 'heading' ? (parent.attrs.level as number) : null)
         })
       } catch {
         /* the editor is between states; the next selection change settles it */
@@ -344,10 +334,9 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
         <div className="md-toolbar">
           <select
             className="md-select"
-            value={block.level ? String(block.level) : ''}
-            disabled={block.inSummary}
+            value={headingLevel ? String(headingLevel) : ''}
             onChange={(event) => setHeading(event.target.value === '' ? null : Number(event.target.value))}
-            title={block.inSummary ? 'A section summary is inline text; headings do not apply' : 'Block type'}
+            title="Block type"
           >
             <option value="">Text</option>
             <option value="1">Heading 1</option>
@@ -382,7 +371,6 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
 
           <button
             className="md-btn"
-            disabled={block.inSummary}
             onClick={() => run(wrapInBulletListCommand as never)}
             title="Bullet list"
           >
@@ -390,7 +378,6 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
           </button>
           <button
             className="md-btn"
-            disabled={block.inSummary}
             onClick={() => run(wrapInOrderedListCommand as never)}
             title="Numbered list"
           >
@@ -398,7 +385,6 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
           </button>
           <button
             className="md-btn"
-            disabled={block.inSummary}
             onClick={() => run(wrapInBlockquoteCommand as never)}
             title="Quote"
           >
@@ -409,7 +395,6 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
 
           <button
             className="md-btn"
-            disabled={block.inSummary}
             onClick={() => run(insertTableCommand as never)}
             title="Table"
           >
@@ -417,7 +402,6 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
           </button>
           <button
             className="md-btn"
-            disabled={block.inSummary}
             onClick={() => run(createCodeBlockCommand as never)}
             title="Code block"
           >
@@ -425,7 +409,6 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
           </button>
           <button
             className="md-btn"
-            disabled={block.inSummary}
             onClick={() => run(insertHrCommand as never)}
             title="Divider"
           >
@@ -442,9 +425,8 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
               <button
                 key={snippet.id}
                 className="md-chip"
-                disabled={block.inSummary}
                 onClick={() => onInsertSnippet(snippet.id)}
-                title={block.inSummary ? 'Not available inside a section summary' : snippet.label}
+                title={snippet.label}
                 aria-label={snippet.label}
               >
                 {ICONS[snippet.id]}

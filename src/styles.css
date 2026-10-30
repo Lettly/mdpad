@@ -1025,13 +1025,22 @@ code {
   outline: none;
 }
 
+.md-details-summary > * {
+  margin: 0;
+}
+
+.md-details-summary > * + * {
+  margin-top: 4px;
+}
+
 .md-details-summary::before {
   content: '▾';
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 1px;
   color: var(--fg-faint);
   font-weight: 400;
+  transform: translateY(-50%);
 }
 
 .md-details-summary:focus {

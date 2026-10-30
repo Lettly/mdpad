@@ -11,7 +11,7 @@ import remarkGfm from 'remark-gfm'
  * `<details><summary>…</summary>…</details>`.
  */
 
-type MdNode = { type: string; value?: string; children?: MdNode[] }
+type MdNode = { type: string; value?: string; children?: MdNode[]; marker?: string }
 
 const OPEN = /^<details[^>]*>/i
 const SUMMARY = /<summary>([\s\S]*?)<\/summary>/i
@@ -82,15 +82,31 @@ export const remarkDetails = $remark('remarkDetails', () => () => (tree: MdNode)
 
       if (child.type === 'html' && OPEN.test(child.value ?? '')) {
         const value = child.value ?? ''
-        const summary = SUMMARY.exec(value)?.[1]?.trim() ?? 'Summary'
+        const inline = SUMMARY.exec(value)
+        const summary: MdNode[] = []
         const body: MdNode[] = []
         let j = i + 1
+
+        if (inline) {
+          summary.push({ type: 'paragraph', children: parseInline(inline[1].trim()) })
+        } else {
+          // `<summary>` opens here; the summary's blocks run until `</summary>`.
+          while (j < parent.children.length) {
+            const next = parent.children[j]
+            j += 1
+            if (next.type === 'html' && /<\/summary>/i.test(next.value ?? '')) break
+            summary.push(next)
+          }
+          if (!summary.length) summary.push({ type: 'paragraph', children: [] })
+        }
+
         while (j < parent.children.length) {
           const next = parent.children[j]
           if (next.type === 'html' && CLOSE.test(next.value ?? '')) break
           body.push(next)
           j += 1
         }
+
         // A saved section may carry an empty-line placeholder instead of a
         // paragraph; drop it and keep one empty paragraph so the body stays
         // clickable and typeable.
@@ -102,7 +118,7 @@ export const remarkDetails = $remark('remarkDetails', () => () => (tree: MdNode)
         out.push({
           type: 'details',
           children: [
-            { type: 'detailsSummary', children: parseInline(summary) },
+            { type: 'detailsSummary', children: summary },
             { type: 'detailsBody', children: blocks },
           ],
         })
@@ -120,8 +136,31 @@ export const remarkDetails = $remark('remarkDetails', () => () => (tree: MdNode)
   fold(tree)
 })
 
+/**
+ * remark-marker reads the marker character from the source file at each node's
+ * position. Summary nodes come from their own parse of the summary string, so
+ * their positions point at the wrong characters and bold/italic would serialise
+ * with whatever sits there. Pin the markers instead.
+ */
+export const remarkSummaryMarkers = $remark('remarkSummaryMarkers', () => () => (tree: MdNode) => {
+  const pin = (node: MdNode) => {
+    if (node.type === 'strong' || node.type === 'emphasis') node.marker = '*'
+    node.children?.forEach(pin)
+  }
+
+  const walk = (node: MdNode) => {
+    if (node.type === 'detailsSummary') {
+      pin(node)
+      return
+    }
+    node.children?.forEach(walk)
+  }
+
+  walk(tree)
+})
+
 export const detailsSummarySchema = $nodeSchema('details_summary', () => ({
-  content: 'inline*',
+  content: 'block+',
   defining: true,
   parseDOM: [{ tag: 'div[data-type="details-summary"]' }],
   toDOM: () => ['div', { 'data-type': 'details-summary' }, 0],
@@ -184,8 +223,19 @@ export const detailsSchema = $nodeSchema('details', () => ({
   toMarkdown: {
     match: (node) => node.type.name === 'details',
     runner: (state, node) => {
-      const summary = serializeInline(node.child(0))
-      state.addNode('html', undefined, `<details>\n<summary>${summary}</summary>`)
+      const summary = node.child(0)
+      const single = summary.childCount === 1 && summary.child(0).type.name === 'paragraph'
+
+      if (single) {
+        // The common case stays on one line, as GitHub writes it.
+        state.addNode('html', undefined, `<details>\n<summary>${serializeInline(summary.child(0))}</summary>`)
+      } else {
+        // A heading (or any block) in the summary needs its own blocks.
+        state.addNode('html', undefined, '<details>\n<summary>')
+        state.next(summary)
+        state.addNode('html', undefined, '</summary>')
+      }
+
       state.next(node.child(1))
       state.addNode('html', undefined, '</details>')
     },
