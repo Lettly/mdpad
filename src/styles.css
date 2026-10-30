@@ -772,9 +772,21 @@ code {
   line-height: 1;
 }
 
-.md-btn:hover {
+.md-btn:hover:not(:disabled) {
   background: var(--bg-inset);
   color: var(--fg);
+}
+
+.md-btn:disabled,
+.md-select:disabled,
+.md-chip:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.md-chip:disabled:hover {
+  background: none;
+  color: var(--fg-muted);
 }
 
 .md-select {

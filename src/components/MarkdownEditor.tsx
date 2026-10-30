@@ -122,6 +122,10 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
     null,
   )
   const [details, setDetails] = useState<{ summary: string; body: string } | null>(null)
+  const [block, setBlock] = useState<{ level: number | null; inSummary: boolean }>({
+    level: null,
+    inSummary: false,
+  })
 
   useEffect(() => {
     const host = hostRef.current
@@ -254,6 +258,51 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
   }, [dark])
 
   useEffect(() => {
+    let frame = 0
+
+    const syncBlock = () => {
+      // ProseMirror's own selection listener is registered after this one, so
+      // read the state on the next frame, once it has caught up.
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(readBlock)
+    }
+
+    const readBlock = () => {
+      const editor = editorRef.current
+      if (!editor) return
+      try {
+        editor.action((ctx) => {
+          const view = ctx.get(editorViewCtx)
+          const { $from } = view.state.selection
+          let inSummary = false
+          for (let depth = $from.depth; depth > 0; depth -= 1) {
+            if ($from.node(depth).type.name === 'details_summary') {
+              inSummary = true
+              break
+            }
+          }
+          const parent = $from.parent
+          const level = parent.type.name === 'heading' ? (parent.attrs.level as number) : null
+          setBlock((current) =>
+            current.level === level && current.inSummary === inSummary
+              ? current
+              : { level, inSummary },
+          )
+        })
+      } catch {
+        /* the editor is between states; the next selection change settles it */
+      }
+    }
+
+    document.addEventListener('selectionchange', syncBlock)
+    syncBlock()
+    return () => {
+      cancelAnimationFrame(frame)
+      document.removeEventListener('selectionchange', syncBlock)
+    }
+  }, [])
+
+  useEffect(() => {
     onHtmlEdit((request) => {
       const parts = DETAILS.exec(request.value)
       setDetails(parts ? { summary: parts[1].trim(), body: parts[2].trim() } : null)
@@ -295,13 +344,10 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
         <div className="md-toolbar">
           <select
             className="md-select"
-            defaultValue=""
-            onChange={(event) => {
-              const raw = event.target.value
-              setHeading(raw === '' ? null : Number(raw))
-              event.target.value = ''
-            }}
-            title="Block type"
+            value={block.level ? String(block.level) : ''}
+            disabled={block.inSummary}
+            onChange={(event) => setHeading(event.target.value === '' ? null : Number(event.target.value))}
+            title={block.inSummary ? 'A section summary is inline text; headings do not apply' : 'Block type'}
           >
             <option value="">Text</option>
             <option value="1">Heading 1</option>
@@ -336,6 +382,7 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
 
           <button
             className="md-btn"
+            disabled={block.inSummary}
             onClick={() => run(wrapInBulletListCommand as never)}
             title="Bullet list"
           >
@@ -343,6 +390,7 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
           </button>
           <button
             className="md-btn"
+            disabled={block.inSummary}
             onClick={() => run(wrapInOrderedListCommand as never)}
             title="Numbered list"
           >
@@ -350,6 +398,7 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
           </button>
           <button
             className="md-btn"
+            disabled={block.inSummary}
             onClick={() => run(wrapInBlockquoteCommand as never)}
             title="Quote"
           >
@@ -358,17 +407,28 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
 
           <span className="md-sep" />
 
-          <button className="md-btn" onClick={() => run(insertTableCommand as never)} title="Table">
+          <button
+            className="md-btn"
+            disabled={block.inSummary}
+            onClick={() => run(insertTableCommand as never)}
+            title="Table"
+          >
             ⊞
           </button>
           <button
             className="md-btn"
+            disabled={block.inSummary}
             onClick={() => run(createCodeBlockCommand as never)}
             title="Code block"
           >
             {'{ }'}
           </button>
-          <button className="md-btn" onClick={() => run(insertHrCommand as never)} title="Divider">
+          <button
+            className="md-btn"
+            disabled={block.inSummary}
+            onClick={() => run(insertHrCommand as never)}
+            title="Divider"
+          >
             —
           </button>
           <button className="md-btn" onClick={addLink} title="Link">
@@ -382,8 +442,9 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
               <button
                 key={snippet.id}
                 className="md-chip"
+                disabled={block.inSummary}
                 onClick={() => onInsertSnippet(snippet.id)}
-                title={snippet.label}
+                title={block.inSummary ? 'Not available inside a section summary' : snippet.label}
                 aria-label={snippet.label}
               >
                 {ICONS[snippet.id]}
