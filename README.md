@@ -44,6 +44,21 @@ Deep links work too, so a URL like `#/owner/repo/blob/main/README.md` opens that
 request, no review. If the file changed on GitHub in the meantime, GitHub rejects the write and
 you get a conflict error; reload and re-apply.
 
+## Advanced blocks
+
+The **Insert** menu adds the GitHub-flavoured blocks that rich text cannot build:
+
+| Item | Inserts |
+| --- | --- |
+| Collapsible section | `<details>` + `<summary>` |
+| Footnote | a `[^1]` reference and its definition |
+| Alert | `> [!NOTE]` |
+| Math block | `$$ … $$` |
+| Keyboard key | `<kbd>⌘</kbd>` |
+
+Picking one switches the file to Markdown mode first, because that is where those constructs live —
+and once a file contains one, it stays in Markdown mode so a save cannot flatten it.
+
 ## Development
 
 ```bash

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CommitDialog from './components/CommitDialog'
 import FileTree from './components/FileTree'
+import InsertMenu from './components/InsertMenu'
 import MarkdownEditor, { type EditorApi, type EditorMode } from './components/MarkdownEditor'
 import OpenRepoDialog from './components/OpenRepoDialog'
 import TokenGate from './components/TokenGate'
@@ -18,6 +19,7 @@ import {
 } from './lib/github'
 import { parseRepoLink } from './lib/githubUrl'
 import { analyzeMarkdown, describeRisk } from './lib/markdown'
+import { snippetFor, snippetPayload } from './lib/snippets'
 import { buildTree, isEditable, type TreeNode } from './lib/tree'
 import { readRoute, routeToHash, type Route } from './lib/route'
 import { loadTheme, loadToken, saveTheme, saveToken, type Theme } from './lib/storage'
@@ -49,8 +51,6 @@ export default function App() {
   const [fileLoading, setFileLoading] = useState(false)
   const [fileError, setFileError] = useState<string | null>(null)
   const [fileReload, setFileReload] = useState(0)
-  /** Constructs that rich-text editing would destroy, if any. */
-  const [risk, setRisk] = useState<string[] | null>(null)
 
   const [mode, setMode] = useState<EditorMode>('wysiwyg')
   const [theme, setTheme] = useState<Theme>(
@@ -87,6 +87,12 @@ export default function App() {
   const dirty = doc !== null && text.trimEnd() !== doc.text.trimEnd()
   const dirtyRef = useRef(dirty)
   dirtyRef.current = dirty
+
+  /** Constructs that rich-text editing would destroy, if any. */
+  const risk = useMemo(() => {
+    const analysis = analyzeMarkdown(text)
+    return analysis.safe ? null : analysis.reasons
+  }, [text])
 
   /* ---------------------------------------------------------------- theme */
 
@@ -223,7 +229,6 @@ export default function App() {
       setDoc(null)
       setText('')
       setFileError(null)
-      setRisk(null)
       return
     }
 
@@ -231,7 +236,6 @@ export default function App() {
     if (!isEditable(path)) {
       setDoc(null)
       setText('')
-      setRisk(null)
       setFileError('This file is not Markdown or plain text, so it cannot be edited here.')
       return
     }
@@ -249,7 +253,6 @@ export default function App() {
         const analysis = analyzeMarkdown(file.text)
         const targetMode: EditorMode = analysis.safe ? preferredMode.current : 'markdown'
 
-        setRisk(analysis.safe ? null : analysis.reasons)
         setMode(targetMode)
 
         setDoc({ path, text: file.text, sha: file.sha })
@@ -266,7 +269,6 @@ export default function App() {
         if (cancelled) return
         setDoc(null)
         setText('')
-        setRisk(null)
         setFileError(describeError(error))
       })
       .finally(() => {
@@ -360,6 +362,25 @@ export default function App() {
     }
     preferredMode.current = next
     setMode(next)
+  }
+
+  const insertSnippet = (id: string) => {
+    const snippet = snippetFor(id)
+    const api = editorApi.current
+    if (!snippet || !api) return
+
+    const payload = snippetPayload(snippet)
+
+    if (mode === 'markdown') {
+      api.insertText(payload)
+      return
+    }
+
+    // These blocks only exist as Markdown source, so switch before inserting.
+    setMode('markdown')
+    api.setMode('markdown')
+    showToast('Switched to Markdown to insert the block')
+    window.setTimeout(() => api.insertText(payload), 0)
   }
 
   const commit = async (message: string) => {
@@ -517,6 +538,7 @@ export default function App() {
                 </div>
 
                 <div className="pane-actions">
+                  <InsertMenu disabled={!doc} onInsert={insertSnippet} />
                   {doc ? (
                     <button className="link-btn" onClick={reloadFile} title="Reload from GitHub">
                       Reload

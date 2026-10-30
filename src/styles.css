@@ -354,6 +354,54 @@ code {
   text-decoration: none;
 }
 
+.btn-quiet {
+  height: 28px;
+  padding: 0 9px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--fg-muted);
+  border-color: var(--border);
+}
+
+.btn-quiet:hover:not(:disabled) {
+  color: var(--fg);
+}
+
+.caret-down {
+  margin-left: 2px;
+  font-size: 0.58rem;
+  color: var(--fg-faint);
+}
+
+.menu-wide {
+  min-width: 268px;
+}
+
+.menu-item-rich {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.menu-label {
+  font-size: 0.82rem;
+}
+
+.menu-hint {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--fg-faint);
+}
+
+.menu-foot {
+  margin: 6px 8px 2px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--fg-faint);
+}
+
 .link-btn:hover {
   text-decoration: underline;
 }

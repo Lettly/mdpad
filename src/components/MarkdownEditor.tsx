@@ -12,6 +12,8 @@ export type EditorApi = {
   getValue: () => string
   /** Switches mode without reporting the conversion back as an edit. */
   setMode: (mode: EditorMode) => void
+  /** Inserts Markdown at the cursor. Only meaningful in Markdown mode. */
+  insertText: (markdown: string) => void
 }
 
 type Props = {
@@ -108,6 +110,14 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
         beginSuppress()
         editor.changeMode(next)
         window.setTimeout(endSuppress, 0)
+      },
+      insertText: (markdown) => {
+        editor.focus()
+        editor.insertText(markdown)
+        // Not every insertion path emits `change`; report it either way.
+        window.setTimeout(() => {
+          if (editorRef.current === editor) onChangeRef.current(editor.getMarkdown())
+        }, 0)
       },
     })
 
