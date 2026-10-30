@@ -26,3 +26,5 @@ Math: $E = mc^2$
 Emoji :smile: and a link https://example.com
 
 <!-- an html comment -->
+
+Em dash — here. Ellipsis… and “curly quotes” and an apostrophe it’s.
