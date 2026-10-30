@@ -1,7 +1,7 @@
 # mdpad
 
 A small WYSIWYG Markdown editor for GitHub repositories. Paste a repo or file URL, browse the
-tree, edit in rich text (or raw Markdown), and save — which commits straight to the branch.
+tree, edit in rich text (or raw Markdown), and save which commits straight to the branch.
 
 Everything runs in the browser: no server, no backend, no database. The page talks directly to
 `api.github.com`.
@@ -9,15 +9,15 @@ Everything runs in the browser: no server, no backend, no database. The page tal
 ## Using it
 
 1. Open the app and press **Sign in with GitHub** — the device flow shows a code, you type it at
-   <https://github.com/login/device>, and the page picks up the token by polling.
+    [https://github.com/login/device](https://github.com/login/device), and the page picks up the token by polling.
 2. Or paste a fine-grained personal access token with **Contents: read and write** on the
-   repositories you want to edit. Create one at
-   <https://github.com/settings/personal-access-tokens/new>.
+    repositories you want to edit. Create one at
+    [https://github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new).
 3. Paste a repository or file URL:
-   - `https://github.com/owner/repo`
-   - `https://github.com/owner/repo/blob/main/docs/guide.md`
-   - `https://raw.githubusercontent.com/owner/repo/main/README.md`
-   - or just `owner/repo`
+    * `https://github.com/owner/repo`
+    * `https://github.com/owner/repo/blob/main/docs/guide.md`
+    * `https://raw.githubusercontent.com/owner/repo/main/README.md`
+    * or just `owner/repo`
 
 Deep links work too, so a URL like `#/owner/repo/blob/main/README.md` opens that file directly.
 
@@ -46,7 +46,7 @@ the app. There is nothing secret in it — each visitor brings their own token.
 ## How it works
 
 | Piece | What it does |
-| --- | --- |
+| ----- | ------------ |
 | `src/lib/github.ts` | REST client for the contents, trees and branches endpoints |
 | `src/lib/githubUrl.ts` | Turns pasted repository/file URLs into `owner`, `repo`, `branch`, `path` |
 | `src/lib/oauth.ts` | GitHub device flow client (start, poll, cancel) |
@@ -82,9 +82,9 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 
 ## Limits
 
-- Only `.md`, `.markdown`, `.mdx` and `.txt` files are editable; the rest are listed but dimmed.
-- Writes go through the contents API, which caps out at 1 MB per file.
-- The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
-  you can push to. A fine-grained personal access token is the narrower option when that matters.
-- Rich text round-trips through Toast UI's Markdown serialiser, so exotic Markdown (raw HTML blocks,
-  deeply nested tables) can be normalised on the first save. The raw Markdown mode is exact.
+* Only `.md`, `.markdown`, `.mdx` and `.txt` files are editable; the rest are listed but dimmed.
+* Writes go through the contents API, which caps out at 1 MB per file.
+* The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
+    you can push to. A fine-grained personal access token is the narrower option when that matters.
+* Rich text round-trips through Toast UI's Markdown serialiser, so exotic Markdown (raw HTML blocks,
+    deeply nested tables) can be normalised on the first save. The raw Markdown mode is exact.
