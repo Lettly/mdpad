@@ -33,6 +33,8 @@ import {
 } from '../editor/html'
 import 'katex/dist/katex.min.css'
 
+const DETAILS = /^\s*<details[^>]*>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>\s*$/i
+
 const ICONS: Record<string, ReactElement> = {
   details: (
     <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -106,6 +108,7 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
   const [htmlEdit, setHtmlEdit] = useState<{ value: string; apply: (next: string) => void } | null>(
     null,
   )
+  const [details, setDetails] = useState<{ summary: string; body: string } | null>(null)
 
   useEffect(() => {
     const host = hostRef.current
@@ -195,13 +198,23 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
   }, [dark])
 
   useEffect(() => {
-    onHtmlEdit((request) => setHtmlEdit(request))
+    onHtmlEdit((request) => {
+      const parts = DETAILS.exec(request.value)
+      setDetails(parts ? { summary: parts[1].trim(), body: parts[2].trim() } : null)
+      setHtmlEdit(request)
+    })
     return () => onHtmlEdit(null)
   }, [])
 
   const saveHtml = (value: string) => {
     htmlEdit?.apply(value)
     setHtmlEdit(null)
+    setDetails(null)
+  }
+
+  const closeHtml = () => {
+    setHtmlEdit(null)
+    setDetails(null)
   }
 
   const run = (command: { key: CmdKey<unknown> }, payload?: unknown) => {
@@ -341,27 +354,62 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
 
       {htmlEdit ? (
         <Modal
-          title="Edit HTML block"
-          description="GitHub renders this as written. Click any HTML chip to change it."
-          onClose={() => setHtmlEdit(null)}
+          title={details ? 'Collapsible section' : 'Edit HTML block'}
+          description={
+            details
+              ? 'Shown on GitHub as a disclosure.'
+              : 'GitHub renders this as written. Click any rendered block to change it.'
+          }
+          onClose={closeHtml}
           footer={
             <>
-              <button className="btn" onClick={() => setHtmlEdit(null)}>
+              <button className="btn" onClick={closeHtml}>
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={() => saveHtml(htmlEdit.value)}>
+              <button
+                className="btn btn-primary"
+                onClick={() =>
+                  saveHtml(
+                    details
+                      ? `<details>\n<summary>${details.summary}</summary>\n\n${details.body}\n\n</details>`
+                      : htmlEdit.value,
+                  )
+                }
+              >
                 Save
               </button>
             </>
           }
         >
-          <textarea
-            className="input textarea"
-            rows={10}
-            value={htmlEdit.value}
-            spellCheck={false}
-            onChange={(event) => setHtmlEdit({ ...htmlEdit, value: event.target.value })}
-          />
+          {details ? (
+            <>
+              <label className="field">
+                <span>Summary</span>
+                <input
+                  className="input"
+                  value={details.summary}
+                  onChange={(event) => setDetails({ ...details, summary: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Content</span>
+                <textarea
+                  className="input textarea"
+                  rows={6}
+                  value={details.body}
+                  onChange={(event) => setDetails({ ...details, body: event.target.value })}
+                />
+              </label>
+            </>
+          ) : (
+            <textarea
+              className="input textarea"
+              rows={10}
+              value={htmlEdit.value}
+              spellCheck={false}
+              onChange={(event) => setHtmlEdit({ ...htmlEdit, value: event.target.value })}
+            />
+          )}
         </Modal>
       ) : null}
     </div>

@@ -96,11 +96,24 @@ export const htmlBlockView = $view(htmlBlockSchema.node, () => (node, view, getP
   }
 })
 
-export const htmlInlineView = $view(htmlSchema.node, () => (node) => {
+export const htmlInlineView = $view(htmlSchema.node, () => (node, view, getPos) => {
   const dom = document.createElement('span')
   dom.className = 'html-inline'
   dom.contentEditable = 'false'
   renderInto(dom, node.attrs.value as string)
+
+  dom.addEventListener('click', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    requestEdit?.({
+      value: dom.dataset.value ?? '',
+      apply: (next) => {
+        const pos = getPos()
+        if (typeof pos !== 'number') return
+        view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { value: next }))
+      },
+    })
+  })
 
   return {
     dom,
@@ -110,5 +123,6 @@ export const htmlInlineView = $view(htmlSchema.node, () => (node) => {
       return true
     },
     ignoreMutation: () => true,
+    stopEvent: (event) => event.type === 'click',
   }
 })
