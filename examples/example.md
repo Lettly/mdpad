@@ -11,6 +11,17 @@ Regular text with **bold**, *italic*, ~~strikethrough~~, `inline code`, and a
 
 ## Advanced
 
+<details>
+<summary>**Collapsible** section</summary>
+
+A section that stays out of the way until someone opens it. Everything inside is
+ordinary Markdown: **bold**, links, lists, even code.
+
+- First point
+- Second point
+
+</details>
+
 > [!NOTE]
 > Callouts are written as a blockquote with a marker, and GitHub renders them
 > as a coloured box.

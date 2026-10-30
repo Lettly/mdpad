@@ -1,21 +1,80 @@
 import { $nodeSchema, $remark, $view } from '@milkdown/utils'
+import type { Node as ProseNode } from '@milkdown/prose/model'
+import { unified } from 'unified'
+import remarkParse from 'remark-parse'
+import remarkGfm from 'remark-gfm'
 
 /**
- * A real collapsible-section node: the summary is edited in place, and the body
- * is ordinary Markdown blocks — so lists, code, links and images inside a
- * `<details>` are editable like anything else.
+ * A collapsible section whose summary and body are both ordinary Markdown.
+ * The summary is an inline node, so bold, italic, code, strikethrough and links
+ * work in it; the body is a block node. On save both are written back into
+ * `<details><summary>…</summary>…</details>`.
  */
 
-type MdNode = { type: string; value?: string; children?: MdNode[]; summary?: string }
+type MdNode = { type: string; value?: string; children?: MdNode[] }
 
 const OPEN = /^<details[^>]*>/i
 const SUMMARY = /<summary>([\s\S]*?)<\/summary>/i
 const CLOSE = /^\s*<\/details>\s*$/i
 
+const inlineParser = unified().use(remarkParse).use(remarkGfm)
+
+/** Parses a summary line as Markdown, so its marks survive the round-trip. */
+function parseInline(text: string): MdNode[] {
+  if (!text.trim()) return []
+  const tree = inlineParser.parse(text) as unknown as MdNode
+  const first = tree.children?.[0]
+  return first?.children ?? []
+}
+
+const ESCAPE = /[\\`*_[\]<>]/g
+
+/** Serialises one inline run back to Markdown, marks included. */
+function serializeInline(node: ProseNode): string {
+  const runs: Array<{ text: string; marks: readonly { type: { name: string }; attrs: Record<string, unknown> }[] }> = []
+
+  node.forEach((child) => {
+    if (child.type.name === 'hardbreak') {
+      runs.push({ text: ' ', marks: [] })
+      return
+    }
+
+    const text = child.isText ? (child.text ?? '') : child.textContent
+    const marks = child.marks as unknown as (typeof runs)[number]['marks']
+    const last = runs[runs.length - 1]
+    const key = (value: typeof marks) => value.map((mark) => mark.type.name).sort().join(',')
+
+    if (last && key(last.marks) === key(marks)) last.text += text
+    else runs.push({ text, marks })
+  })
+
+  return runs
+    .map(({ text, marks }) => {
+      const names = new Set(marks.map((mark) => mark.type.name))
+      if (names.has('inlineCode')) return `\`${text}\``
+
+      let out = text.replace(ESCAPE, '\\$&')
+      if (names.has('strike_through')) out = `~~${out}~~`
+      if (names.has('emphasis')) out = `*${out}*`
+      if (names.has('strong')) out = `**${out}**`
+
+      const link = marks.find((mark) => mark.type.name === 'link')
+      if (link) {
+        const href = String(link.attrs.href ?? '')
+        const title = link.attrs.title ? ` "${String(link.attrs.title)}"` : ''
+        out = `[${out}](${href}${title})`
+      }
+      return out
+    })
+    .join('')
+}
+
 /** Folds `<details> … </details>` runs into a single `details` node. */
 export const remarkDetails = $remark('remarkDetails', () => () => (tree: MdNode) => {
   const fold = (parent: MdNode) => {
     if (!parent.children) return
+    if (parent.type === 'paragraph' || parent.type === 'heading') return
+
     const out: MdNode[] = []
 
     for (let i = 0; i < parent.children.length; i++) {
@@ -32,7 +91,21 @@ export const remarkDetails = $remark('remarkDetails', () => () => (tree: MdNode)
           body.push(next)
           j += 1
         }
-        out.push({ type: 'details', summary, children: [{ type: 'detailsBody', children: body }] })
+        // A saved section may carry an empty-line placeholder instead of a
+        // paragraph; drop it and keep one empty paragraph so the body stays
+        // clickable and typeable.
+        const blocks = body.filter(
+          (child) => !(child.type === 'html' && /^<br\s*\/?>$/i.test((child.value ?? '').trim())),
+        )
+        if (!blocks.length) blocks.push({ type: 'paragraph', children: [] })
+
+        out.push({
+          type: 'details',
+          children: [
+            { type: 'detailsSummary', children: parseInline(summary) },
+            { type: 'detailsBody', children: blocks },
+          ],
+        })
         i = j
         continue
       }
@@ -47,8 +120,29 @@ export const remarkDetails = $remark('remarkDetails', () => () => (tree: MdNode)
   fold(tree)
 })
 
+export const detailsSummarySchema = $nodeSchema('details_summary', () => ({
+  content: 'inline*',
+  defining: true,
+  parseDOM: [{ tag: 'div[data-type="details-summary"]' }],
+  toDOM: () => ['div', { 'data-type': 'details-summary' }, 0],
+  parseMarkdown: {
+    match: ({ type }) => type === 'detailsSummary',
+    runner: (state, node, type) => {
+      state.openNode(type)
+      state.next(node.children ?? [])
+      state.closeNode()
+    },
+  },
+  toMarkdown: {
+    match: (node) => node.type.name === 'details_summary',
+    runner: (state, node) => {
+      node.forEach((child) => state.next(child))
+    },
+  },
+}))
+
 export const detailsBodySchema = $nodeSchema('details_body', () => ({
-  content: 'block+',
+  content: 'block*',
   defining: true,
   parseDOM: [{ tag: 'div[data-type="details-body"]' }],
   toDOM: () => ['div', { 'data-type': 'details-body' }, 0],
@@ -63,31 +157,26 @@ export const detailsBodySchema = $nodeSchema('details_body', () => ({
   toMarkdown: {
     match: (node) => node.type.name === 'details_body',
     runner: (state, node) => {
-      node.forEach((child) => state.next(child))
+      node.forEach((child) => {
+        // An empty body paragraph would otherwise serialise as `<br />`.
+        if (child.type.name === 'paragraph' && child.content.size === 0) return
+        state.next(child)
+      })
     },
   },
 }))
 
 export const detailsSchema = $nodeSchema('details', () => ({
   group: 'block',
-  content: 'details_body',
+  content: 'details_summary details_body',
   defining: true,
-  attrs: { summary: { default: 'Summary' } },
-  parseDOM: [
-    {
-      tag: 'details[data-type="mdpad-details"]',
-      getAttrs: (dom) => ({ summary: (dom as HTMLElement).dataset.summary ?? 'Summary' }),
-    },
-  ],
-  toDOM: (node) => [
-    'details',
-    { 'data-type': 'mdpad-details', 'data-summary': node.attrs.summary, open: 'true' },
-    0,
-  ],
+  isolating: true,
+  parseDOM: [{ tag: 'div[data-type="mdpad-details"]' }],
+  toDOM: () => ['div', { 'data-type': 'mdpad-details' }, 0],
   parseMarkdown: {
     match: ({ type }) => type === 'details',
     runner: (state, node, type) => {
-      state.openNode(type, { summary: (node as MdNode).summary ?? 'Summary' })
+      state.openNode(type)
       state.next(node.children ?? [])
       state.closeNode()
     },
@@ -95,45 +184,29 @@ export const detailsSchema = $nodeSchema('details', () => ({
   toMarkdown: {
     match: (node) => node.type.name === 'details',
     runner: (state, node) => {
-      state.addNode('html', undefined, `<details>\n<summary>${node.attrs.summary}</summary>`)
-      state.next(node.child(0))
+      const summary = serializeInline(node.child(0))
+      state.addNode('html', undefined, `<details>\n<summary>${summary}</summary>`)
+      state.next(node.child(1))
       state.addNode('html', undefined, '</details>')
     },
   },
 }))
 
-export const detailsView = $view(detailsSchema.node, () => (node, view, getPos) => {
-  const dom = document.createElement('details')
-  dom.open = true
+export const detailsSummaryView = $view(detailsSummarySchema.node, () => () => {
+  const dom = document.createElement('div')
+  dom.className = 'md-details-summary'
+  dom.dataset.type = 'details-summary'
+  return { dom, contentDOM: dom }
+})
+
+export const detailsView = $view(detailsSchema.node, () => () => {
+  const dom = document.createElement('div')
   dom.className = 'md-details'
+  dom.dataset.type = 'mdpad-details'
 
-  const summary = document.createElement('summary')
-  const input = document.createElement('input')
-  input.className = 'md-details-summary'
-  input.value = node.attrs.summary as string
-  input.setAttribute('aria-label', 'Section summary')
-  input.addEventListener('input', () => {
-    const pos = getPos()
-    if (typeof pos !== 'number') return
-    view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { summary: input.value }))
-  })
-  input.addEventListener('mousedown', (event) => event.stopPropagation())
-  summary.append(input)
+  const content = document.createElement('div')
+  content.className = 'md-details-content'
+  dom.append(content)
 
-  const body = document.createElement('div')
-  body.className = 'md-details-body'
-
-  dom.append(summary, body)
-
-  return {
-    dom,
-    contentDOM: body,
-    update: (updated) => {
-      if (updated.type.name !== 'details') return false
-      if (updated.attrs.summary !== input.value) input.value = updated.attrs.summary as string
-      return true
-    },
-    ignoreMutation: (mutation) => !body.contains(mutation.target as Node),
-    stopEvent: (event) => input.contains(event.target as Node),
-  }
+  return { dom, contentDOM: content }
 })

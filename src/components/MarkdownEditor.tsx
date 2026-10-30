@@ -22,11 +22,14 @@ import {
 } from '@milkdown/preset-commonmark'
 import { insertTableCommand, toggleStrikethroughCommand } from '@milkdown/preset-gfm'
 import type { CmdKey } from '@milkdown/core'
+import { TextSelection } from '@milkdown/prose/state'
 import Modal from './Modal'
 import { SNIPPETS } from '../lib/snippets'
 import {
   detailsBodySchema,
   detailsSchema,
+  detailsSummarySchema,
+  detailsSummaryView,
   detailsView,
   remarkDetails,
 } from '../editor/details'
@@ -40,6 +43,10 @@ import {
 import 'katex/dist/katex.min.css'
 
 const DETAILS = /^\s*<details[^>]*>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>\s*$/i
+
+/** GitHub callouts are `> [!NOTE]`; remark escapes the bracket on the way out. */
+const unescapeCallouts = (markdown: string) =>
+  markdown.replace(/^(\s*>\s*)\\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/gm, '$1[!$2]')
 
 const ICONS: Record<string, ReactElement> = {
   details: (
@@ -126,20 +133,25 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
         ctx.set(rootCtx, host)
         ctx.set(defaultValueCtx, '')
         ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
-          if (readyRef.current) onChangeRef.current(markdown)
+          if (readyRef.current) onChangeRef.current(unescapeCallouts(markdown))
         })
       })
+      // These two run before the commonmark preset, whose own remark pass turns
+      // block-level HTML into a paragraph with an inline HTML leaf. Folding
+      // <details> and block HTML first keeps them as real block nodes.
+      .use(remarkDetails)
+      .use(remarkHtmlBlocks)
       .use(commonmark)
       .use(gfm)
       .use(history)
       .use(clipboard)
       .use(listener)
       .use(math)
-      .use(remarkDetails)
+      .use(detailsSummarySchema)
       .use(detailsBodySchema)
       .use(detailsSchema)
+      .use(detailsSummaryView)
       .use(detailsView)
-      .use(remarkHtmlBlocks)
       .use(htmlBlockSchema)
       .use(htmlBlockView)
       .use(htmlInlineView)
@@ -158,10 +170,10 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
           // Hand the serialised form back as the baseline, so the dirty check
           // starts from the text the editor will actually save.
           window.setTimeout(() => {
-            if (editorRef.current === editor) onSyncRef.current(editor.action(getMarkdown()))
+            if (editorRef.current === editor) onSyncRef.current(unescapeCallouts(editor.action(getMarkdown())))
           }, 0)
         },
-        getValue: () => editor.action(getMarkdown()),
+        getValue: () => unescapeCallouts(editor.action(getMarkdown())),
         setMode: () => undefined,
         insertText: (markdown) => {
           if (modeRef.current === 'markdown') {
@@ -182,15 +194,39 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
             const view = ctx.get(editorViewCtx)
             const { state } = view
             const detailsType = state.schema.nodes.details
+            const summaryType = state.schema.nodes.details_summary
             const bodyType = state.schema.nodes.details_body
             const htmlType = state.schema.nodes.html
             const trimmed = markdown.trimStart()
 
             let tr
-            if (/^<details/i.test(trimmed) && detailsType && bodyType) {
-              const paragraph = state.schema.nodes.paragraph.create()
-              const node = detailsType.create({ summary: 'Summary' }, bodyType.create(null, paragraph))
+            if (/^<details/i.test(trimmed) && detailsType && summaryType && bodyType) {
+              const at = state.selection.from
+              const summary = summaryType.create(null, state.schema.text('Summary'))
+              const body = bodyType.create(null, state.schema.nodes.paragraph.create())
+              const node = detailsType.create(null, [summary, body])
               tr = state.tr.replaceSelectionWith(node)
+
+              // Select the placeholder so the first thing typed replaces it.
+              let detailsPos: number | null = null
+              const from = Math.max(0, at - 1)
+              const to = Math.min(tr.doc.content.size, at + node.nodeSize + 1)
+              tr.doc.nodesBetween(from, to, (candidate, pos) => {
+                if (candidate.type.name === 'details') {
+                  detailsPos = pos
+                  return false
+                }
+                return true
+              })
+
+              const start = detailsPos === null ? null : detailsPos + 2
+              if (start !== null) {
+                try {
+                  tr.setSelection(TextSelection.create(tr.doc, start, start + 'Summary'.length))
+                } catch {
+                  tr.setSelection(TextSelection.near(tr.doc.resolve(start), 1))
+                }
+              }
             } else if (trimmed.startsWith('<') && htmlType) {
               tr = state.tr.replaceSelectionWith(htmlType.create({ value: markdown.trim() }))
             } else {

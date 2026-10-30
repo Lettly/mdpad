@@ -17,7 +17,9 @@ export const remarkHtmlBlocks = $remark('remarkHtmlBlocks', () => () => (tree: M
     if (!parent.children) return
     for (const child of parent.children) {
       if (child.type === 'html') child.type = 'htmlBlock'
-      else if (child.type !== 'paragraph' && child.type !== 'heading') walk(child)
+      else if (child.type !== 'paragraph' && child.type !== 'heading' && child.type !== 'detailsSummary') {
+        walk(child)
+      }
     }
   }
   walk(tree)
