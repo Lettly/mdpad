@@ -20,6 +20,7 @@
     "@milkdown/preset-gfm": "^7.23.0",
     "@milkdown/prose": "^7.23.0",
     "@milkdown/utils": "^7.23.0",
+    "dompurify": "^3.4.17",
     "katex": "^0.19.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

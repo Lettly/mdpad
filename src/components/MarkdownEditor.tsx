@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { Editor, defaultValueCtx, editorViewCtx, rootCtx } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { gfm } from '@milkdown/preset-gfm'
@@ -24,7 +24,48 @@ import { insertTableCommand, toggleStrikethroughCommand } from '@milkdown/preset
 import type { CmdKey } from '@milkdown/core'
 import Modal from './Modal'
 import { SNIPPETS } from '../lib/snippets'
+import {
+  htmlBlockSchema,
+  htmlBlockView,
+  htmlInlineView,
+  onHtmlEdit,
+  remarkHtmlBlocks,
+} from '../editor/html'
 import 'katex/dist/katex.min.css'
+
+const ICONS: Record<string, ReactElement> = {
+  details: (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2" />
+      <path d="M5.75 6.4L8 8.65l2.25-2.25" />
+    </svg>
+  ),
+  footnote: (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M6.2 12.5V5.4L4 6.6" />
+      <circle cx="11.4" cy="4.6" r="1.3" />
+    </svg>
+  ),
+  alert: (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M8 2.6l5.9 10.8H2.1z" />
+      <path d="M8 6.6v3.1" />
+      <circle cx="8" cy="11.6" r="0.75" />
+    </svg>
+  ),
+  math: (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M4.5 3.5h7l-3.6 4.5 3.6 4.5h-7" />
+    </svg>
+  ),
+  kbd: (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="1.5" y="4.5" width="13" height="7" rx="1.6" />
+      <path d="M4.6 7.2v0M7 7.2v0M9.4 7.2v0M11.8 7.2v0" />
+      <path d="M5.2 9.6h5.6" />
+    </svg>
+  ),
+}
 
 export type EditorMode = 'wysiwyg' | 'markdown'
 
@@ -62,7 +103,9 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
   const valueRef = useRef(value)
   valueRef.current = value
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [htmlEdit, setHtmlEdit] = useState<{ pos: number; value: string } | null>(null)
+  const [htmlEdit, setHtmlEdit] = useState<{ value: string; apply: (next: string) => void } | null>(
+    null,
+  )
 
   useEffect(() => {
     const host = hostRef.current
@@ -83,6 +126,10 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
       .use(clipboard)
       .use(listener)
       .use(math)
+      .use(remarkHtmlBlocks)
+      .use(htmlBlockSchema)
+      .use(htmlBlockView)
+      .use(htmlInlineView)
 
     editorRef.current = editor
 
@@ -147,27 +194,13 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
     root?.classList.toggle('md-dark', dark)
   }, [dark])
 
-  const openHtml = (event: React.MouseEvent) => {
-    const target = (event.target as HTMLElement).closest('span[data-type="html"]')
-    const editor = editorRef.current
-    if (!target || !editor) return
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx)
-      const pos = view.posAtDOM(target, 0)
-      const node = view.state.doc.nodeAt(pos)
-      if (node?.type.name === 'html') setHtmlEdit({ pos, value: node.attrs.value as string })
-    })
-  }
+  useEffect(() => {
+    onHtmlEdit((request) => setHtmlEdit(request))
+    return () => onHtmlEdit(null)
+  }, [])
 
   const saveHtml = (value: string) => {
-    const editor = editorRef.current
-    if (!editor || !htmlEdit) return
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx)
-      const node = view.state.doc.nodeAt(htmlEdit.pos)
-      if (!node) return
-      view.dispatch(view.state.tr.setNodeMarkup(htmlEdit.pos, undefined, { value }))
-    })
+    htmlEdit?.apply(value)
     setHtmlEdit(null)
   }
 
@@ -281,9 +314,10 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
                 key={snippet.id}
                 className="md-chip"
                 onClick={() => onInsertSnippet(snippet.id)}
-                title={`Insert a ${snippet.label.toLowerCase()}`}
+                title={snippet.label}
+                aria-label={snippet.label}
               >
-                {snippet.short}
+                {ICONS[snippet.id]}
               </button>
             ))}
           </div>
@@ -293,7 +327,6 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
       <div
         className={mode === 'wysiwyg' ? 'md-surface' : 'md-surface is-hidden'}
         ref={hostRef}
-        onClick={openHtml}
       />
 
       {mode === 'markdown' ? (

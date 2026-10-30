@@ -803,22 +803,36 @@ code {
 }
 
 .md-chip {
-  height: 24px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--bg);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: none;
   color: var(--fg-muted);
-  font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 500;
   cursor: pointer;
-  white-space: nowrap;
+}
+
+.md-chip svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.md-chip svg circle {
+  fill: currentColor;
+  stroke: none;
 }
 
 .md-chip:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--bg-inset);
+  color: var(--fg);
 }
 
 .md-surface {
@@ -982,16 +996,42 @@ code {
   border-radius: 4px;
 }
 
-.ProseMirror span[data-type='html'] {
-  display: inline;
-  padding: 1px 5px;
-  border: 1px dashed var(--border-strong);
-  border-radius: 5px;
+/* Raw HTML renders as content; clicking it opens the HTML editor. */
+.ProseMirror .html-block {
+  margin: 1em 0;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ProseMirror .html-block:hover {
+  border-color: var(--border-strong);
+}
+
+.ProseMirror .html-block details {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   background: var(--bg-inset);
-  color: var(--fg-muted);
+}
+
+.ProseMirror .html-block summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ProseMirror .html-block img {
+  max-width: 100%;
+  height: auto;
+}
+
+.ProseMirror .html-inline kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-inset);
   font-family: var(--mono);
-  font-size: 0.76rem;
-  white-space: pre-wrap;
+  font-size: 0.8em;
 }
 
 .ProseMirror li[data-checked] {
