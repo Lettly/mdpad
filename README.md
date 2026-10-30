@@ -57,8 +57,9 @@ form:
 | Math | `$$ … $$` |
 | Key | `<kbd>⌘</kbd>` |
 
-They land in the document where the cursor is. A collapsible section renders as a real disclosure;
-clicking any rendered HTML block opens a small HTML editor for it.
+They land in the document where the cursor is. A collapsible section is an editable block: type the
+summary (Markdown works there too) and write the body as ordinary blocks. Other raw HTML renders as
+content; click it to edit the HTML behind it.
 
 ## Development
 
@@ -121,8 +122,9 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 - Writes go through the contents API, which caps out at 1 MB per file.
 - The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
   you can push to. A fine-grained personal access token is the narrower option when that matters.
-- Raw HTML is preserved as an atomic node and **rendered as content** — a `<details>` block opens and
-  closes, a centred header is centred. Click it to edit the HTML behind it.
+- A `<details>` block is a real node: summary and body are edited in place and written back as
+  `<details><summary>…</summary>…</details>`. Other raw HTML is preserved as an atomic node and
+  **rendered as content** — a centred header is centred. Click it to edit the HTML behind it.
 - Rich text rewrites bullets and table separators (`-` becomes `*`), and footnote definitions are
   re-serialised. Everything else round-trips verbatim.
 - Markdown mode is an escape hatch for the rare file that needs byte-exact text; it is never
