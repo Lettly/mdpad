@@ -4,3 +4,5 @@ dist-ssr
 *.local
 .DS_Store
 .vite
+oauth-proxy/node_modules
+oauth-proxy/.wrangler

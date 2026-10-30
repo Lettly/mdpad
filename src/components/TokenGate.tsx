@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { oauthConfigured, startDeviceFlow, waitForToken, type DeviceCode } from '../lib/oauth'
 
 type Props = {
   onConnect: (token: string) => void
@@ -8,6 +9,51 @@ type Props = {
 
 export default function TokenGate({ onConnect, error, busy }: Props) {
   const [token, setToken] = useState('')
+  const [device, setDevice] = useState<DeviceCode | null>(null)
+  const [flowError, setFlowError] = useState<string | null>(null)
+  const [starting, setStarting] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => () => abortRef.current?.abort(), [])
+
+  const begin = async () => {
+    setStarting(true)
+    setFlowError(null)
+    try {
+      const code = await startDeviceFlow()
+      setDevice(code)
+
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      const accessToken = await waitForToken(code.device_code, code.interval, controller.signal)
+      onConnect(accessToken)
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === 'AbortError') return
+      setFlowError(cause instanceof Error ? cause.message : String(cause))
+      setDevice(null)
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  const cancel = () => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setDevice(null)
+  }
+
+  const copyCode = async () => {
+    if (!device) return
+    try {
+      await navigator.clipboard.writeText(device.user_code)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard access can be denied; the code is on screen anyway.
+    }
+  }
 
   return (
     <div className="gate">
@@ -22,6 +68,43 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
           A WYSIWYG editor for any repository you can push to. The browser talks straight to
           GitHub&apos;s API — there is no server, no database, nothing to trust but this page.
         </p>
+
+        {oauthConfigured ? (
+          <div className="gate-oauth">
+            {device ? (
+              <div className="device-card">
+                <p className="device-lead">Enter this code on GitHub to authorize mdpad:</p>
+                <div className="device-code">{device.user_code}</div>
+                <div className="device-actions">
+                  <a className="btn" href={device.verification_uri} target="_blank" rel="noreferrer">
+                    Open GitHub
+                  </a>
+                  <button className="btn" onClick={copyCode}>
+                    {copied ? 'Copied' : 'Copy code'}
+                  </button>
+                </div>
+                <p className="device-wait">
+                  <span className="spinner" /> Waiting for authorization…
+                </p>
+                <button className="link-btn" onClick={cancel}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button className="btn btn-primary btn-block" onClick={begin} disabled={starting || busy}>
+                {starting ? 'Contacting GitHub…' : 'Sign in with GitHub'}
+              </button>
+            )}
+
+            {flowError ? <p className="gate-error">{flowError}</p> : null}
+          </div>
+        ) : null}
+
+        {oauthConfigured ? (
+          <div className="gate-divider">
+            <span>or paste a token</span>
+          </div>
+        ) : null}
 
         <form
           className="gate-form"

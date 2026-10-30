@@ -1,0 +1,8 @@
+name = "mdpad-oauth"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Browsers that may call this relay. Both entries are the app itself: the
+# deployed site and the local dev server.
+[vars]
+ALLOWED_ORIGINS = "https://lettly.github.io,http://localhost:5173"
