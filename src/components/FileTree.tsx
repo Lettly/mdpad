@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ancestorsOf, filterTree, isEditable, type TreeNode } from '../lib/tree'
+import { ancestorsOf, directoryPaths, filterTree, isEditable, type TreeNode } from '../lib/tree'
 
 type Props = {
   tree: TreeNode[]
@@ -10,7 +10,7 @@ type Props = {
 
 export default function FileTree({ tree, selectedPath, onOpen, truncated }: Props) {
   const [query, setQuery] = useState('')
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(directoryPaths(tree)))
   const listRef = useRef<HTMLDivElement>(null)
 
   const visible = useMemo(() => filterTree(tree, query), [tree, query])

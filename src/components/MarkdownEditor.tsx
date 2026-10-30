@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import Editor from '@toast-ui/editor'
 import type { EditorOptions } from '@toast-ui/editor'
+import DOMPurify from 'dompurify'
 import '@toast-ui/editor/dist/toastui-editor.css'
 import '@toast-ui/editor/dist/theme/toastui-editor-dark.css'
 
@@ -49,6 +50,14 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
       autofocus: false,
       theme: darkRef.current ? 'dark' : 'light',
       placeholder: 'Start writing…',
+      hideModeSwitch: true,
+      // Markdown from someone else's repository is untrusted input: it must not
+      // be able to run script in a page that holds a GitHub token.
+      customHTMLSanitizer: (html) =>
+        DOMPurify.sanitize(html, {
+          USE_PROFILES: { html: true },
+          ADD_ATTR: ['target', 'align', 'colspan', 'rowspan'],
+        }),
       toolbarItems: [
         ['heading', 'bold', 'italic', 'strike'],
         ['hr', 'quote'],
@@ -74,7 +83,7 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
         editor.setMarkdown(markdown, false)
         window.setTimeout(() => {
           suppressRef.current = false
-          onSyncRef.current(editor.getMarkdown())
+          if (editorRef.current === editor) onSyncRef.current(editor.getMarkdown())
         }, 0)
       },
       getValue: () => editor.getMarkdown(),
@@ -84,6 +93,9 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
       editor.off('change')
       editor.destroy()
       editorRef.current = null
+      // Toast UI's destroy() leaves its DOM behind, which would stack a second
+      // editor on top of the first one after a StrictMode remount.
+      host.innerHTML = ''
       onReadyRef.current(null)
     }
   }, [])
@@ -99,7 +111,7 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
     editor.changeMode(mode)
     window.setTimeout(() => {
       suppressRef.current = false
-      onSyncRef.current(editor.getMarkdown())
+      if (editorRef.current === editor) onSyncRef.current(editor.getMarkdown())
     }, 0)
   }, [mode])
 

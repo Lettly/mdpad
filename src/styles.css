@@ -711,15 +711,6 @@ code {
   background: var(--bg);
 }
 
-.editor-shell .toastui-editor-mode-switch {
-  display: none;
-}
-
-.editor-shell .toastui-editor-md-tab-container,
-.editor-shell .toastui-editor-ww-tab-container {
-  display: none;
-}
-
 .editor-shell .ProseMirror {
   padding-bottom: 80px;
 }

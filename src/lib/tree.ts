@@ -74,6 +74,21 @@ export function filterTree(nodes: TreeNode[], query: string): TreeNode[] {
   return walk(nodes)
 }
 
+/** Every directory path, so the tree can start fully collapsed. */
+export function directoryPaths(nodes: TreeNode[]): string[] {
+  const out: string[] = []
+  const walk = (list: TreeNode[]) => {
+    for (const node of list) {
+      if (node.type === 'dir') {
+        out.push(node.path)
+        walk(node.children)
+      }
+    }
+  }
+  walk(nodes)
+  return out
+}
+
 /** Directory paths that must be expanded to reveal `path`. */
 export function ancestorsOf(path: string): string[] {
   const parts = path.split('/').slice(0, -1)

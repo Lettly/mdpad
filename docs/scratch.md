@@ -1,1 +1,0 @@
- Edited in mdpad.Scratch file used to verify the editor.

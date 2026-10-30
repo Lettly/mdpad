@@ -55,6 +55,9 @@ the app. There is nothing secret in it — each visitor brings their own token.
 Saving reads the file's blob `sha` when it is opened and sends it back with the write, which is how
 GitHub detects that you edited a stale copy.
 
+Markdown from the repository is sanitised with DOMPurify before it renders, so a hostile file cannot
+script a page that holds your token.
+
 ## Limits
 
 - Only `.md`, `.markdown`, `.mdx` and `.txt` files are editable; the rest are listed but dimmed.

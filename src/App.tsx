@@ -238,8 +238,8 @@ export default function App() {
         if (cancelled) return
         setDoc({ path, text: file.text, sha: file.sha })
         setText(file.text)
+        pendingValue.current = file.text
         if (editorApi.current) editorApi.current.setValue(file.text)
-        else pendingValue.current = file.text
       })
       .catch((error: unknown) => {
         if (cancelled) return
@@ -260,10 +260,9 @@ export default function App() {
 
   const handleReady = useCallback((api: EditorApi | null) => {
     editorApi.current = api
-    if (api && pendingValue.current !== null) {
-      api.setValue(pendingValue.current)
-      pendingValue.current = null
-    }
+    // StrictMode mounts the editor twice in development, and the second mount
+    // must show the document that was already loaded.
+    if (api && pendingValue.current !== null) api.setValue(pendingValue.current)
   }, [])
 
   const handleSync = useCallback((markdown: string) => {
@@ -454,6 +453,7 @@ export default function App() {
       <div className="workspace">
         {session ? (
           <FileTree
+            key={`${session.repo.full_name}@${session.branch}`}
             tree={session.tree}
             selectedPath={route?.path ?? null}
             onOpen={openFile}
