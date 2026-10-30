@@ -87,5 +87,8 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 * Writes go through the contents API, which caps out at 1 MB per file.
 * The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
     you can push to. A fine-grained personal access token is the narrower option when that matters.
-* Rich text round-trips through Toast UI's Markdown serialiser, so exotic Markdown (raw HTML blocks,
-    deeply nested tables) can be normalised on the first save. The raw Markdown mode is exact.
+* Files using raw HTML (`<details>`, `<img>`, `<br>`…) or footnote syntax open in **Markdown mode**
+    automatically: the rich-text round-trip drops the tags and escapes the footnotes. The banner says
+    why, and switching to rich text anyway asks first.
+* Everything else survives rich text — tables, task lists, alerts, strikethrough, autolinks — though
+    bullets and table separators may be rewritten (`-` becomes `*`).
