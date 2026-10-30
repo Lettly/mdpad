@@ -25,6 +25,12 @@ import type { CmdKey } from '@milkdown/core'
 import Modal from './Modal'
 import { SNIPPETS } from '../lib/snippets'
 import {
+  detailsBodySchema,
+  detailsSchema,
+  detailsView,
+  remarkDetails,
+} from '../editor/details'
+import {
   htmlBlockSchema,
   htmlBlockView,
   htmlInlineView,
@@ -129,6 +135,10 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
       .use(clipboard)
       .use(listener)
       .use(math)
+      .use(remarkDetails)
+      .use(detailsBodySchema)
+      .use(detailsSchema)
+      .use(detailsView)
       .use(remarkHtmlBlocks)
       .use(htmlBlockSchema)
       .use(htmlBlockView)
@@ -171,11 +181,21 @@ export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onC
           editor.action((ctx) => {
             const view = ctx.get(editorViewCtx)
             const { state } = view
+            const detailsType = state.schema.nodes.details
+            const bodyType = state.schema.nodes.details_body
             const htmlType = state.schema.nodes.html
-            const isHtml = markdown.trimStart().startsWith('<') && htmlType
-            const tr = isHtml
-              ? state.tr.replaceSelectionWith(htmlType.create({ value: markdown.trim() }))
-              : state.tr.insertText(markdown)
+            const trimmed = markdown.trimStart()
+
+            let tr
+            if (/^<details/i.test(trimmed) && detailsType && bodyType) {
+              const paragraph = state.schema.nodes.paragraph.create()
+              const node = detailsType.create({ summary: 'Summary' }, bodyType.create(null, paragraph))
+              tr = state.tr.replaceSelectionWith(node)
+            } else if (trimmed.startsWith('<') && htmlType) {
+              tr = state.tr.replaceSelectionWith(htmlType.create({ value: markdown.trim() }))
+            } else {
+              tr = state.tr.insertText(markdown)
+            }
             view.dispatch(tr.scrollIntoView())
             view.focus()
           })

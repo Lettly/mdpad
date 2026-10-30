@@ -996,6 +996,56 @@ code {
   border-radius: 4px;
 }
 
+.md-details {
+  margin: 1em 0;
+  padding: 8px 14px 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-inset);
+}
+
+.md-details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.md-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.md-details > summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--fg-faint);
+  transition: transform 0.12s ease;
+}
+
+.md-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.md-details-summary {
+  width: 100%;
+  max-width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.md-details-summary:focus {
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+
+.md-details-body {
+  padding-top: 6px;
+}
+
 /* Raw HTML renders as content; clicking it opens the HTML editor. */
 .ProseMirror .html-block {
   margin: 1em 0;
