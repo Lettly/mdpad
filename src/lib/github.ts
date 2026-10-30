@@ -47,6 +47,8 @@ async function call<T>(path: string, init: Call = {}): Promise<T> {
   try {
     response = await fetch(`${API}${path}`, {
       method,
+      // A file edited seconds ago must not come back from the HTTP cache.
+      cache: 'no-store',
       headers: {
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',

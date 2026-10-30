@@ -50,6 +50,7 @@ the app. There is nothing secret in it — each visitor brings their own token.
 | `src/lib/github.ts` | REST client for the contents, trees and branches endpoints |
 | `src/lib/githubUrl.ts` | Turns pasted repository/file URLs into `owner`, `repo`, `branch`, `path` |
 | `src/lib/oauth.ts` | GitHub device flow client (start, poll, cancel) |
+| `src/lib/markdown.ts` | Detects Markdown that rich text would destroy, so it opens raw |
 | `src/lib/route.ts` | Hash router, so deep links work on a static host |
 | `src/lib/tree.ts` | Flat git tree → collapsible file tree |
 | `src/components/MarkdownEditor.tsx` | Toast UI Editor, WYSIWYG with a raw Markdown mode |

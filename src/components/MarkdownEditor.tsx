@@ -10,6 +10,8 @@ export type EditorMode = 'wysiwyg' | 'markdown'
 export type EditorApi = {
   setValue: (markdown: string) => void
   getValue: () => string
+  /** Switches mode without reporting the conversion back as an edit. */
+  setMode: (mode: EditorMode) => void
 }
 
 type Props = {
@@ -24,7 +26,17 @@ type Props = {
 export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<Editor | null>(null)
-  const suppressRef = useRef(false)
+
+  // Conversions and programmatic loads fire the same `change` event as typing.
+  // Suppressions nest (setMode then setValue), so count them instead of using
+  // a boolean that a second call could clear too early.
+  const suppressRef = useRef(0)
+  const beginSuppress = () => {
+    suppressRef.current += 1
+  }
+  const endSuppress = () => {
+    suppressRef.current = Math.max(0, suppressRef.current - 1)
+  }
 
   const onChangeRef = useRef(onChange)
   const onSyncRef = useRef(onSync)
@@ -35,6 +47,8 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
 
   const darkRef = useRef(dark)
   darkRef.current = dark
+  const modeRef = useRef(mode)
+  modeRef.current = mode
 
   useEffect(() => {
     const host = hostRef.current
@@ -43,7 +57,9 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
     const options: EditorOptions = {
       el: host,
       height: '100%',
-      initialEditType: 'wysiwyg',
+      // The first file decides the mode: a Markdown-only file must never be
+      // parsed as rich text, even for an instant.
+      initialEditType: modeRef.current,
       previewStyle: 'vertical',
       initialValue: '',
       usageStatistics: false,
@@ -71,22 +87,28 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
     editorRef.current = editor
 
     const handleChange = () => {
-      // Ignore the echo produced by setMarkdown/changeMode.
-      if (suppressRef.current) return
+      if (suppressRef.current > 0) return
       onChangeRef.current(editor.getMarkdown())
     }
     editor.on('change', handleChange)
 
     onReadyRef.current({
       setValue: (markdown) => {
-        suppressRef.current = true
+        beginSuppress()
         editor.setMarkdown(markdown, false)
         window.setTimeout(() => {
-          suppressRef.current = false
+          endSuppress()
           if (editorRef.current === editor) onSyncRef.current(editor.getMarkdown())
         }, 0)
       },
       getValue: () => editor.getMarkdown(),
+      setMode: (next) => {
+        const current = editor.isMarkdownMode() ? 'markdown' : 'wysiwyg'
+        if (current === next) return
+        beginSuppress()
+        editor.changeMode(next)
+        window.setTimeout(endSuppress, 0)
+      },
     })
 
     return () => {
@@ -107,10 +129,10 @@ export default function MarkdownEditor({ mode, dark, onChange, onSync, onReady }
     const current = editor.isMarkdownMode() ? 'markdown' : 'wysiwyg'
     if (current === mode) return
 
-    suppressRef.current = true
+    beginSuppress()
     editor.changeMode(mode)
     window.setTimeout(() => {
-      suppressRef.current = false
+      endSuppress()
       if (editorRef.current === editor) onSyncRef.current(editor.getMarkdown())
     }, 0)
   }, [mode])

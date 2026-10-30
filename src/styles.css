@@ -14,6 +14,7 @@
   --accent-fg: #ffffff;
   --danger: #cf2f2f;
   --ok: #1f8a4c;
+  --warn: #b45309;
   --shadow: 0 12px 40px rgba(20, 22, 30, 0.12), 0 2px 8px rgba(20, 22, 30, 0.06);
   --radius: 10px;
   --sidebar: 272px;
@@ -36,6 +37,7 @@
   --accent-fg: #0b1020;
   --danger: #f2777a;
   --ok: #63d089;
+  --warn: #fbbf24;
   --shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }
@@ -592,6 +594,37 @@ code {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+.notice {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--fg-muted);
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border);
+}
+
+.notice-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--accent);
+}
+
+.notice-warn {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--warn) 14%, var(--bg));
+  border-bottom-color: color-mix(in srgb, var(--warn) 30%, var(--border));
+}
+
+.notice-warn .notice-dot {
+  background: var(--warn);
 }
 
 .pane-state {

@@ -17,6 +17,7 @@ import {
   type Repo,
 } from './lib/github'
 import { parseRepoLink } from './lib/githubUrl'
+import { analyzeMarkdown, describeRisk } from './lib/markdown'
 import { buildTree, isEditable, type TreeNode } from './lib/tree'
 import { readRoute, routeToHash, type Route } from './lib/route'
 import { loadTheme, loadToken, saveTheme, saveToken, type Theme } from './lib/storage'
@@ -48,6 +49,8 @@ export default function App() {
   const [fileLoading, setFileLoading] = useState(false)
   const [fileError, setFileError] = useState<string | null>(null)
   const [fileReload, setFileReload] = useState(0)
+  /** Constructs that rich-text editing would destroy, if any. */
+  const [risk, setRisk] = useState<string[] | null>(null)
 
   const [mode, setMode] = useState<EditorMode>('wysiwyg')
   const [theme, setTheme] = useState<Theme>(
@@ -67,6 +70,8 @@ export default function App() {
   const editorApi = useRef<EditorApi | null>(null)
   const pendingValue = useRef<string | null>(null)
   const toastTimer = useRef<number | undefined>(undefined)
+  /** The mode the user picked; files that need it still force Markdown. */
+  const preferredMode = useRef<EditorMode>('wysiwyg')
 
   const applySession = useCallback((next: Session | null) => {
     sessionRef.current = next
@@ -218,6 +223,7 @@ export default function App() {
       setDoc(null)
       setText('')
       setFileError(null)
+      setRisk(null)
       return
     }
 
@@ -225,6 +231,7 @@ export default function App() {
     if (!isEditable(path)) {
       setDoc(null)
       setText('')
+      setRisk(null)
       setFileError('This file is not Markdown or plain text, so it cannot be edited here.')
       return
     }
@@ -236,15 +243,30 @@ export default function App() {
     readFile(token, session.repo.owner.login, session.repo.name, path, session.branch)
       .then((file) => {
         if (cancelled) return
+
+        // Decide the mode before the content reaches the editor: parsing raw
+        // HTML as rich text destroys it immediately, not only on save.
+        const analysis = analyzeMarkdown(file.text)
+        const targetMode: EditorMode = analysis.safe ? preferredMode.current : 'markdown'
+
+        setRisk(analysis.safe ? null : analysis.reasons)
+        setMode(targetMode)
+
         setDoc({ path, text: file.text, sha: file.sha })
         setText(file.text)
         pendingValue.current = file.text
-        if (editorApi.current) editorApi.current.setValue(file.text)
+
+        const api = editorApi.current
+        if (api) {
+          api.setMode(targetMode)
+          api.setValue(file.text)
+        }
       })
       .catch((error: unknown) => {
         if (cancelled) return
         setDoc(null)
         setText('')
+        setRisk(null)
         setFileError(describeError(error))
       })
       .finally(() => {
@@ -324,6 +346,20 @@ export default function App() {
   const reloadFile = () => {
     if (dirtyRef.current && !window.confirm('Reload from GitHub and lose your changes?')) return
     setFileReload((value) => value + 1)
+  }
+
+  const requestMode = (next: EditorMode) => {
+    if (
+      next === 'wysiwyg' &&
+      risk &&
+      !window.confirm(
+        `Rich text editing will drop ${describeRisk(risk)} from this file when you save. Continue?`,
+      )
+    ) {
+      return
+    }
+    preferredMode.current = next
+    setMode(next)
   }
 
   const commit = async (message: string) => {
@@ -487,10 +523,10 @@ export default function App() {
                     </button>
                   ) : null}
                   <div className="segmented" role="group" aria-label="Editor mode">
-                    <button aria-pressed={mode === 'wysiwyg'} onClick={() => setMode('wysiwyg')}>
+                    <button aria-pressed={mode === 'wysiwyg'} onClick={() => requestMode('wysiwyg')}>
                       WYSIWYG
                     </button>
-                    <button aria-pressed={mode === 'markdown'} onClick={() => setMode('markdown')}>
+                    <button aria-pressed={mode === 'markdown'} onClick={() => requestMode('markdown')}>
                       Markdown
                     </button>
                   </div>
@@ -498,6 +534,15 @@ export default function App() {
               </div>
 
               <div className="pane-body">
+                {risk && doc ? (
+                  <div className={mode === 'markdown' ? 'notice' : 'notice notice-warn'}>
+                    <span className="notice-dot" aria-hidden="true" />
+                    {mode === 'markdown'
+                      ? `This file uses ${describeRisk(risk)}, so it is open in Markdown mode — a save keeps it intact.`
+                      : `Rich text cannot keep ${describeRisk(risk)}. Saving now will remove it.`}
+                  </div>
+                ) : null}
+
                 {repoLoading ? <Loading label="Loading repository…" /> : null}
 
                 {!repoLoading && repoError ? (
