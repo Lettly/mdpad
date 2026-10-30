@@ -56,8 +56,8 @@ The **Insert** menu adds the GitHub-flavoured blocks that rich text cannot build
 | Math block | `$$ … $$` |
 | Keyboard key | `<kbd>⌘</kbd>` |
 
-Picking one switches the file to Markdown mode first, because that is where those constructs live —
-and once a file contains one, it stays in Markdown mode so a save cannot flatten it.
+They are inserted straight into the rich-text document. A collapsible section becomes an editable
+block; the tags are the only parts shown as chips, and clicking a chip opens a small HTML editor.
 
 ## Development
 
@@ -84,10 +84,9 @@ the app. There is nothing secret in it — each visitor brings their own token.
 | `src/lib/github.ts` | REST client for the contents, trees and branches endpoints |
 | `src/lib/githubUrl.ts` | Turns pasted repository/file URLs into `owner`, `repo`, `branch`, `path` |
 | `src/lib/oauth.ts` | GitHub device flow client (start, poll, cancel) |
-| `src/lib/markdown.ts` | Detects Markdown that rich text would destroy, so it opens raw |
 | `src/lib/route.ts` | Hash router, so deep links work on a static host |
 | `src/lib/tree.ts` | Flat git tree → collapsible file tree |
-| `src/components/MarkdownEditor.tsx` | Toast UI Editor, WYSIWYG with a raw Markdown mode |
+| `src/components/MarkdownEditor.tsx` | Milkdown editor: rich text, with a raw Markdown escape hatch |
 | `oauth-proxy/` | Cloudflare Worker that adds CORS headers to GitHub's OAuth endpoints |
 
 Saving reads the file's blob `sha` when it is opened and sends it back with the write, which is how
@@ -121,8 +120,9 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 - Writes go through the contents API, which caps out at 1 MB per file.
 - The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
   you can push to. A fine-grained personal access token is the narrower option when that matters.
-- Files using raw HTML (`<details>`, `<img>`, `<br>`…) or footnote syntax open in **Markdown mode**
-  automatically: the rich-text round-trip drops the tags and escapes the footnotes. The banner says
-  why, and switching to rich text anyway asks first.
-- Everything else survives rich text — tables, task lists, alerts, strikethrough, autolinks — though
-  bullets and table separators may be rewritten (`-` becomes `*`).
+- Raw HTML is preserved as an atomic node: it survives every save and is shown as a chip you click
+  to edit. GitHub renders it as written — the editor shows the source, not the rendered element.
+- Rich text rewrites bullets and table separators (`-` becomes `*`), and footnote definitions are
+  re-serialised. Everything else round-trips verbatim.
+- Markdown mode is an escape hatch for the rare file that needs byte-exact text; it is never
+  required to edit.

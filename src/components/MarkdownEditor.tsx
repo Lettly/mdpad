@@ -276,7 +276,7 @@ export default function MarkdownEditor({ mode, dark, value, onChange, onSync, on
       <div
         className={mode === 'wysiwyg' ? 'md-surface' : 'md-surface is-hidden'}
         ref={hostRef}
-        onDoubleClick={openHtml}
+        onClick={openHtml}
       />
 
       {mode === 'markdown' ? (
@@ -292,7 +292,7 @@ export default function MarkdownEditor({ mode, dark, value, onChange, onSync, on
       {htmlEdit ? (
         <Modal
           title="Edit HTML block"
-          description="Rendered by GitHub as written. Double-click any HTML chip to change it."
+          description="GitHub renders this as written. Click any HTML chip to change it."
           onClose={() => setHtmlEdit(null)}
           footer={
             <>
