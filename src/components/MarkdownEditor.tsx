@@ -23,6 +23,7 @@ import {
 import { insertTableCommand, toggleStrikethroughCommand } from '@milkdown/preset-gfm'
 import type { CmdKey } from '@milkdown/core'
 import Modal from './Modal'
+import { SNIPPETS } from '../lib/snippets'
 import 'katex/dist/katex.min.css'
 
 export type EditorMode = 'wysiwyg' | 'markdown'
@@ -38,12 +39,13 @@ type Props = {
   mode: EditorMode
   dark: boolean
   value: string
+  onInsertSnippet: (id: string) => void
   onChange: (markdown: string) => void
   onSync: (markdown: string) => void
   onReady: (api: EditorApi | null) => void
 }
 
-export default function MarkdownEditor({ mode, dark, value, onChange, onSync, onReady }: Props) {
+export default function MarkdownEditor({ mode, dark, value, onInsertSnippet, onChange, onSync, onReady }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<Editor | null>(null)
   const readyRef = useRef(false)
@@ -255,7 +257,7 @@ export default function MarkdownEditor({ mode, dark, value, onChange, onSync, on
           <span className="md-sep" />
 
           <button className="md-btn" onClick={() => run(insertTableCommand as never)} title="Table">
-            ▦
+            ⊞
           </button>
           <button
             className="md-btn"
@@ -270,6 +272,21 @@ export default function MarkdownEditor({ mode, dark, value, onChange, onSync, on
           <button className="md-btn" onClick={addLink} title="Link">
             🔗
           </button>
+
+          <span className="md-sep" />
+
+          <div className="md-chips">
+            {SNIPPETS.map((snippet) => (
+              <button
+                key={snippet.id}
+                className="md-chip"
+                onClick={() => onInsertSnippet(snippet.id)}
+                title={`Insert a ${snippet.label.toLowerCase()}`}
+              >
+                {snippet.short}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 

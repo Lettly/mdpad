@@ -7,6 +7,8 @@
 export type Snippet = {
   id: string
   label: string
+  /** Short label for the toolbar chip. */
+  short: string
   hint: string
   /** Block snippets get blank lines around them so they stay separate. */
   block: boolean
@@ -16,6 +18,7 @@ export type Snippet = {
 export const SNIPPETS: Snippet[] = [
   {
     id: 'details',
+    short: 'Details',
     label: 'Collapsible section',
     hint: '<details>',
     block: true,
@@ -30,6 +33,7 @@ export const SNIPPETS: Snippet[] = [
   },
   {
     id: 'footnote',
+    short: 'Footnote',
     label: 'Footnote',
     hint: '[^1]',
     block: true,
@@ -37,6 +41,7 @@ export const SNIPPETS: Snippet[] = [
   },
   {
     id: 'alert',
+    short: 'Callout',
     label: 'Alert',
     hint: '> [!NOTE]',
     block: true,
@@ -44,6 +49,7 @@ export const SNIPPETS: Snippet[] = [
   },
   {
     id: 'math',
+    short: 'Math',
     label: 'Math block',
     hint: '$$',
     block: true,
@@ -51,6 +57,7 @@ export const SNIPPETS: Snippet[] = [
   },
   {
     id: 'kbd',
+    short: 'Key',
     label: 'Keyboard key',
     hint: '<kbd>',
     block: false,

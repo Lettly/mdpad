@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CommitDialog from './components/CommitDialog'
 import FileTree from './components/FileTree'
-import InsertMenu from './components/InsertMenu'
 import MarkdownEditor, { type EditorApi, type EditorMode } from './components/MarkdownEditor'
 import OpenRepoDialog from './components/OpenRepoDialog'
 import TokenGate from './components/TokenGate'
@@ -498,7 +497,6 @@ export default function App() {
                 </div>
 
                 <div className="pane-actions">
-                  <InsertMenu disabled={!doc} onInsert={insertSnippet} />
                   {doc ? (
                     <button className="link-btn" onClick={reloadFile} title="Reload from GitHub">
                       Reload
@@ -545,6 +543,7 @@ export default function App() {
                       mode={mode}
                       dark={theme === 'dark'}
                       value={text}
+                      onInsertSnippet={insertSnippet}
                       onChange={setText}
                       onSync={handleSync}
                       onReady={handleReady}

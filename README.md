@@ -46,18 +46,19 @@ you get a conflict error; reload and re-apply.
 
 ## Advanced blocks
 
-The **Insert** menu adds the GitHub-flavoured blocks that rich text cannot build:
+The chips at the end of the toolbar add the GitHub-flavoured blocks that have no plain rich-text
+form:
 
-| Item | Inserts |
+| Chip | Inserts |
 | --- | --- |
-| Collapsible section | `<details>` + `<summary>` |
+| Details | `<details>` + `<summary>` |
 | Footnote | a `[^1]` reference and its definition |
-| Alert | `> [!NOTE]` |
-| Math block | `$$ … $$` |
-| Keyboard key | `<kbd>⌘</kbd>` |
+| Callout | `> [!NOTE]` |
+| Math | `$$ … $$` |
+| Key | `<kbd>⌘</kbd>` |
 
-They are inserted straight into the rich-text document. A collapsible section becomes an editable
-block; the tags are the only parts shown as chips, and clicking a chip opens a small HTML editor.
+They land in the document where the cursor is. A collapsible section becomes an editable block; its
+tags are shown as chips, and clicking one opens a small HTML editor.
 
 ## Development
 
