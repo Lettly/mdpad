@@ -9,6 +9,32 @@ saving commits straight to `main`.
 Regular text with **bold**, *italic*, ~~strikethrough~~, `inline code`, and a
 [link](https://github.com). Unicode survives too: — … “quotes” and it’s.
 
+## Advanced
+
+<details>
+<summary>Collapsible section</summary>
+
+Anything inside can be Markdown: **bold**, lists, code.
+
+- First point
+- Second point
+
+</details>
+
+> [!NOTE]
+> Callouts are written as a blockquote with a marker, and GitHub renders them
+> as a coloured box.
+
+Math renders inline $E = mc^2$ and as a block:
+
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$
+
+Press <kbd>⌘</kbd> + <kbd>S</kbd> to save, and footnotes work too.[^1]
+
+[^1]: This is the footnote definition.
+
 ## Lists
 
 - First item
