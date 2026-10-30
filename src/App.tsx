@@ -18,7 +18,6 @@ import {
   type Repo,
 } from './lib/github'
 import { parseRepoLink } from './lib/githubUrl'
-import { analyzeMarkdown, describeRisk } from './lib/markdown'
 import { snippetFor, snippetPayload } from './lib/snippets'
 import { buildTree, isEditable, type TreeNode } from './lib/tree'
 import { readRoute, routeToHash, type Route } from './lib/route'
@@ -70,8 +69,6 @@ export default function App() {
   const editorApi = useRef<EditorApi | null>(null)
   const pendingValue = useRef<string | null>(null)
   const toastTimer = useRef<number | undefined>(undefined)
-  /** The mode the user picked; files that need it still force Markdown. */
-  const preferredMode = useRef<EditorMode>('wysiwyg')
 
   const applySession = useCallback((next: Session | null) => {
     sessionRef.current = next
@@ -87,12 +84,6 @@ export default function App() {
   const dirty = doc !== null && text.trimEnd() !== doc.text.trimEnd()
   const dirtyRef = useRef(dirty)
   dirtyRef.current = dirty
-
-  /** Constructs that rich-text editing would destroy, if any. */
-  const risk = useMemo(() => {
-    const analysis = analyzeMarkdown(text)
-    return analysis.safe ? null : analysis.reasons
-  }, [text])
 
   /* ---------------------------------------------------------------- theme */
 
@@ -248,22 +239,10 @@ export default function App() {
       .then((file) => {
         if (cancelled) return
 
-        // Decide the mode before the content reaches the editor: parsing raw
-        // HTML as rich text destroys it immediately, not only on save.
-        const analysis = analyzeMarkdown(file.text)
-        const targetMode: EditorMode = analysis.safe ? preferredMode.current : 'markdown'
-
-        setMode(targetMode)
-
         setDoc({ path, text: file.text, sha: file.sha })
         setText(file.text)
         pendingValue.current = file.text
-
-        const api = editorApi.current
-        if (api) {
-          api.setMode(targetMode)
-          api.setValue(file.text)
-        }
+        editorApi.current?.setValue(file.text)
       })
       .catch((error: unknown) => {
         if (cancelled) return
@@ -351,16 +330,9 @@ export default function App() {
   }
 
   const requestMode = (next: EditorMode) => {
-    if (
-      next === 'wysiwyg' &&
-      risk &&
-      !window.confirm(
-        `Rich text editing will drop ${describeRisk(risk)} from this file when you save. Continue?`,
-      )
-    ) {
-      return
-    }
-    preferredMode.current = next
+    if (next === mode) return
+    // Hand the Markdown source to the rich editor when coming back from it.
+    if (next === 'wysiwyg') editorApi.current?.setValue(text)
     setMode(next)
   }
 
@@ -368,19 +340,7 @@ export default function App() {
     const snippet = snippetFor(id)
     const api = editorApi.current
     if (!snippet || !api) return
-
-    const payload = snippetPayload(snippet)
-
-    if (mode === 'markdown') {
-      api.insertText(payload)
-      return
-    }
-
-    // These blocks only exist as Markdown source, so switch before inserting.
-    setMode('markdown')
-    api.setMode('markdown')
-    showToast('Switched to Markdown to insert the block')
-    window.setTimeout(() => api.insertText(payload), 0)
+    api.insertText(snippetPayload(snippet))
   }
 
   const commit = async (message: string) => {
@@ -556,14 +516,6 @@ export default function App() {
               </div>
 
               <div className="pane-body">
-                {risk && doc ? (
-                  <div className={mode === 'markdown' ? 'notice' : 'notice notice-warn'}>
-                    <span className="notice-dot" aria-hidden="true" />
-                    {mode === 'markdown'
-                      ? `This file uses ${describeRisk(risk)}, so it is open in Markdown mode — a save keeps it intact.`
-                      : `Rich text cannot keep ${describeRisk(risk)}. Saving now will remove it.`}
-                  </div>
-                ) : null}
 
                 {repoLoading ? <Loading label="Loading repository…" /> : null}
 
@@ -592,6 +544,7 @@ export default function App() {
                     <MarkdownEditor
                       mode={mode}
                       dark={theme === 'dark'}
+                      value={text}
                       onChange={setText}
                       onSync={handleSync}
                       onReady={handleReady}
