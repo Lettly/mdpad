@@ -1,8 +1,10 @@
 import type { EditorView } from '@codemirror/view'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { replaceCodeMirrorMarkdown, runMarkraCommand } from '@markra/editor/codemirror'
+import { MarkraEditorProvider } from '@markra/editor-react'
 import Modal from '../components/Modal'
 import { CodeMirrorPaperSurface } from '../markra/chrome/CodeMirrorPaperSurface'
+import { SelectionToolbar } from '../markra/chrome/SelectionToolbar'
 import { detailsPlugin, serializeDetails, type DetailsBlock } from '../editor/markra/details'
 import { insertBlockText, insertInlineText, mdpadBlocksPlugin } from '../editor/markra/blocks'
 
@@ -37,6 +39,7 @@ const PAPER_STYLE = {
 
 export default function MarkraEditor({ mode, theme, value, onChange, onSync, onReady }: Props) {
   const viewRef = useRef<EditorView | null>(null)
+  const [editorView, setEditorView] = useState<EditorView | null>(null)
   const [detailsEdit, setDetailsEdit] = useState<{
     details: DetailsBlock
     apply: (next: DetailsBlock) => void
@@ -69,6 +72,7 @@ export default function MarkraEditor({ mode, theme, value, onChange, onSync, onR
 
   const handleReady = (view: EditorView | null) => {
     viewRef.current = view
+    setEditorView(view)
     if (!view) {
       onReadyRef.current(null)
       return
@@ -114,33 +118,36 @@ export default function MarkraEditor({ mode, theme, value, onChange, onSync, onR
 
   return (
     <div className="editor-host markra-root" data-theme={theme}>
-      <section
-        aria-label="Writing surface"
-        className="paper-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-none bg-transparent"
-        style={{ display: mode === 'wysiwyg' ? undefined : 'none' }}
-      >
-        <article
-          className="markdown-paper relative mx-auto min-h-screen w-full max-w-215 px-18 pt-14 text-[16px] leading-[1.65] text-(--text-primary) caret-(--accent) outline-none focus:outline-none max-[900px]:px-5.25 max-[900px]:pt-10"
-          data-editor-engine="codemirror"
-          data-editor-theme={theme}
-          style={PAPER_STYLE}
+      <MarkraEditorProvider view={editorView}>
+        <section
+          aria-label="Writing surface"
+          className="paper-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-none bg-transparent"
+          style={{ display: mode === 'wysiwyg' ? undefined : 'none' }}
         >
-          <CodeMirrorPaperSurface
-            autoFocus
-            extendedSyntax={{ githubAlerts: true, highlight: true }}
-            initialContent={valueRef.current}
-            language="en"
-            onEditorReady={handleReady}
-            onMarkdownChange={(markdown) => onChangeRef.current(markdown)}
-            openExternalUrl={(url) => window.open(url, '_blank', 'noopener,noreferrer')}
-            paragraphSpacingPx={8}
-            plugins={plugins}
-            rawHtmlSkip={(source) => /^<details\b/i.test(source.trim())}
-            showCodeBlockLineNumbers={false}
-            tableColumnWidthMode="auto"
-          />
-        </article>
-      </section>
+          <article
+            className="markdown-paper relative mx-auto min-h-screen w-full max-w-215 px-18 pt-14 text-[16px] leading-[1.65] text-(--text-primary) caret-(--accent) outline-none focus:outline-none max-[900px]:px-5.25 max-[900px]:pt-10"
+            data-editor-engine="codemirror"
+            data-editor-theme={theme}
+            style={PAPER_STYLE}
+          >
+            <CodeMirrorPaperSurface
+              autoFocus
+              extendedSyntax={{ githubAlerts: true, highlight: true }}
+              initialContent={valueRef.current}
+              language="en"
+              onEditorReady={handleReady}
+              onMarkdownChange={(markdown) => onChangeRef.current(markdown)}
+              openExternalUrl={(url) => window.open(url, '_blank', 'noopener,noreferrer')}
+              paragraphSpacingPx={8}
+              plugins={plugins}
+              rawHtmlSkip={(source) => /^<details\b/i.test(source.trim())}
+              showCodeBlockLineNumbers={false}
+              tableColumnWidthMode="auto"
+            />
+          </article>
+        </section>
+        {mode === 'wysiwyg' ? <SelectionToolbar /> : null}
+      </MarkraEditorProvider>
 
       {mode === 'markdown' ? (
         <textarea
