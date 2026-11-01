@@ -534,6 +534,18 @@ export default function App() {
                     <MarkraEditor
                       mode={mode}
                       theme={theme}
+                      imageLocation={
+                        session && doc
+                          ? {
+                              owner: session.repo.owner.login,
+                              repo: session.repo.name,
+                              branch: session.branch,
+                              documentPath: doc.path,
+                              private: session.repo.private,
+                              token,
+                            }
+                          : undefined
+                      }
                       value={text}
                       onChange={setText}
                       onSync={handleSync}

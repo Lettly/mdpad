@@ -56,12 +56,17 @@ future sync stays a straight copy.
 2. `src/markra/chrome/CodeMirrorPaperSurface.tsx` — added a `rawHtmlSkip` prop,
    passed through to `rawHtmlPreviewPlugin`, for the same reason as the editor
    package patch below.
-3. `packages/editor/src/codemirror/raw-html-preview.ts` — added an optional
-   `skip?: (source: string) => boolean` to `RawHtmlPreviewPluginOptions`, and a
-   single `if (options.skip?.(range.source)) continue;` guard in
-   `buildRawHtmlDecorations`. mdpad renders collapsible sections itself (see
-   `src/editor/markra/details.ts`), and two plugins cannot replace the same
-   range.
+3. `packages/editor/src/codemirror/raw-html-preview.ts` — two changes:
+   - an optional `skip?: (source: string) => boolean` on
+     `RawHtmlPreviewPluginOptions`, with a single
+     `if (options.skip?.(range.source)) continue;` guard in
+     `buildRawHtmlDecorations`. mdpad renders collapsible sections itself (see
+     `src/editor/markra/details.ts`), and two plugins cannot replace the same
+     range.
+   - void inline tags (`<img>`, `<br>`) become their own rendered range instead
+     of being skipped, and a range nested inside another is dropped so
+     replacements never overlap. Without this a `<img width="…">` — the usual
+     way to size a logo — showed as source text.
 
 ## Why these two stubs
 

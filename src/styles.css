@@ -749,6 +749,15 @@ code {
   flex-direction: column;
 }
 
+/* Markra sizes an image with an inline-block frame. An SVG that carries only a
+   viewBox has no intrinsic size, so the frame and the image size each other
+   into 0×0 and nothing shows. A block frame gives the image the column width,
+   which is how GitHub renders the same file. */
+.markdown-paper .markra-image-frame {
+  display: block;
+  max-width: 100%;
+}
+
 /* Raw Markdown mode: the one surface mdpad still draws itself. */
 .raw-editor {
   flex: 1;

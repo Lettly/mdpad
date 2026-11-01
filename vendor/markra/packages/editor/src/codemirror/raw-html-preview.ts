@@ -156,7 +156,19 @@ function inlineHtmlRanges(
   for (const boundaries of groups.values()) {
     const stack: InlineHtmlBoundary[] = [];
     for (const boundary of boundaries.sort((left, right) => left.from - right.from)) {
-      if (boundary.kind === "void") continue;
+      if (boundary.kind === "void") {
+        // mdpad: a void tag is a complete element on its own — an <img> with a
+        // width, a <br> — so it renders by itself. Nesting is resolved below.
+        if (voidInlineHtmlTags.has(boundary.tagName)) {
+          ranges.push({
+            block: false,
+            from: boundary.from,
+            source: boundary.source,
+            to: boundary.to,
+          });
+        }
+        continue;
+      }
       if (boundary.kind === "open") {
         stack.push(boundary);
         continue;
@@ -181,7 +193,17 @@ function inlineHtmlRanges(
       });
     }
   }
-  return ranges.sort((left, right) => left.from - right.from);
+  // A void tag inside a paired tag (an <img> inside an <a>) is already covered
+  // by the outer range, and overlapping replacements cannot be rendered.
+  const sorted = ranges.sort((left, right) => left.from - right.from || right.to - left.to);
+  const disjoint: CodeMirrorHtmlRange[] = [];
+  for (const range of sorted) {
+    const last = disjoint.at(-1);
+    if (last && range.from >= last.from && range.to <= last.to) continue;
+    disjoint.push(range);
+  }
+
+  return disjoint;
 }
 
 class RawHtmlWidget extends WidgetType {

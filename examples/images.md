@@ -24,7 +24,9 @@ A wide image:
 
 ![A wide banner](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png)
 
-Images scale to the width of the column; nothing is cropped.
+Images scale to the width of the column; nothing is cropped. An SVG that carries only a `viewBox`
+and no `width`/`height` has no intrinsic size, so it fills the column the way GitHub renders it too —
+add `width` and `height` to the SVG, or write it as `<img width="…">`, to keep it small.
 
 ## Missing image
 
@@ -44,10 +46,15 @@ A broken reference shows its alt text instead of an image:
 
 ## Repo-relative paths
 
-In a repository, a relative path resolves against the file's folder:
+A relative path resolves against the folder this file lives in, so this one points at
+`public/favicon.svg` at the root of the repository:
+
+![The mdpad icon](../public/favicon.svg)
 
 ```md
-![Diagram](./assets/diagram.png)
+![The mdpad icon](../public/favicon.svg)
 ```
+
+An absolute-from-root path works too: `![The icon](/public/favicon.svg)`.
 
 Click an image in the preview to open it larger.

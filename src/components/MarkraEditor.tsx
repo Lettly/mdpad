@@ -1,5 +1,6 @@
+import { Transaction } from '@codemirror/state'
 import type { EditorView } from '@codemirror/view'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { replaceCodeMirrorMarkdown, runMarkraCommand } from '@markra/editor/codemirror'
 import { MarkraEditorProvider } from '@markra/editor-react'
 import Modal from '../components/Modal'
@@ -7,6 +8,7 @@ import { CodeMirrorPaperSurface } from '../markra/chrome/CodeMirrorPaperSurface'
 import { SelectionToolbar } from '../markra/chrome/SelectionToolbar'
 import { detailsPlugin, serializeDetails, type DetailsBlock } from '../editor/markra/details'
 import { insertBlockText, insertInlineText, mdpadBlocksPlugin } from '../editor/markra/blocks'
+import { resolveImage, type ImageLocation } from '../lib/images'
 
 export type EditorMode = 'wysiwyg' | 'markdown'
 
@@ -22,6 +24,8 @@ export type EditorApi = {
 type Props = {
   mode: EditorMode
   theme: 'light' | 'dark'
+  /** Where the document lives, so relative image paths can be resolved. */
+  imageLocation?: ImageLocation
   value: string
   onChange: (markdown: string) => void
   onSync: (markdown: string) => void
@@ -37,7 +41,15 @@ const PAPER_STYLE = {
   maxWidth: '860px',
 } as CSSProperties
 
-export default function MarkraEditor({ mode, theme, value, onChange, onSync, onReady }: Props) {
+export default function MarkraEditor({
+  mode,
+  theme,
+  imageLocation,
+  value,
+  onChange,
+  onSync,
+  onReady,
+}: Props) {
   const viewRef = useRef<EditorView | null>(null)
   const [editorView, setEditorView] = useState<EditorView | null>(null)
   const [detailsEdit, setDetailsEdit] = useState<{
@@ -52,6 +64,9 @@ export default function MarkraEditor({ mode, theme, value, onChange, onSync, onR
   onSyncRef.current = onSync
   onReadyRef.current = onReady
 
+  const imageLocationRef = useRef(imageLocation)
+  imageLocationRef.current = imageLocation
+
   const valueRef = useRef(value)
   valueRef.current = value
   const modeRef = useRef(mode)
@@ -61,6 +76,28 @@ export default function MarkraEditor({ mode, theme, value, onChange, onSync, onR
   // Markra's plugins are built into its surface; mdpad only adds the ones it
   // owns: collapsible sections and the extra block commands.
   const plugins = useRef([detailsPlugin({ onEdit: setDetailsEdit }), mdpadBlocksPlugin()]).current
+
+  // Renderers only re-run on a document change, so a private image that arrives
+  // after the first paint needs a nudge that leaves the text and undo untouched.
+  const refreshImages = useCallback(() => {
+    const view = viewRef.current
+    if (!view || view.state.doc.length === 0 || view.composing) return
+
+    const quiet = Transaction.addToHistory.of(false)
+    view.dispatch({ annotations: quiet, changes: { from: 0, insert: ' ' } })
+    view.dispatch({ annotations: quiet, changes: { from: 0, insert: '', to: 1 } })
+  }, [])
+
+  const resolveImageSrc = useCallback(
+    (source: string) => {
+      const location = imageLocationRef.current
+      // No repository yet: absolute URLs still work, everything else stays
+      // as source rather than as a broken image.
+      if (!location) return /^(?:https?:|data:|blob:)/i.test(source.trim()) ? source : ''
+      return resolveImage(location, source, refreshImages) ?? ''
+    },
+    [refreshImages],
+  )
 
   useEffect(
     () => () => {
@@ -140,6 +177,7 @@ export default function MarkraEditor({ mode, theme, value, onChange, onSync, onR
               openExternalUrl={(url) => window.open(url, '_blank', 'noopener,noreferrer')}
               paragraphSpacingPx={8}
               plugins={plugins}
+              resolveImageSrc={resolveImageSrc}
               rawHtmlSkip={(source) => /^<details\b/i.test(source.trim())}
               showCodeBlockLineNumbers={false}
               tableColumnWidthMode="auto"
