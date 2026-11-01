@@ -1279,12 +1279,12 @@ function buildDecorations(state: EditorState, options: DetailsPluginOptions) {
       }).range(section.summaryLine.from, section.summaryLine.to),
     )
 
-    if (nested) {
-      for (let number = section.bodyFirst; number <= section.bodyLast; number += 1) {
-        decorations.push(
-          Decoration.line({ class: 'md-details-body-nested' }).range(state.doc.line(number).from),
-        )
-      }
+    for (let number = section.bodyFirst; number <= section.bodyLast; number += 1) {
+      const classes = ['md-details-body-line']
+      if (nested) classes.push('md-details-body-nested')
+      decorations.push(
+        Decoration.line({ class: classes.join(' ') }).range(state.doc.line(number).from),
+      )
     }
 
     // The closing tag is markup, not content. A block spacer keeps the gap
@@ -1362,6 +1362,7 @@ function detailsField(options: DetailsPluginOptions) {
 
 const MONO = 'var(--editor-code-font-family, ui-monospace, SFMono-Regular, Menlo, monospace)'
 const FOCUS_RING = '0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent)'
+const GUIDE = 'color-mix(in srgb, var(--editor-text-secondary, var(--text-secondary)) 42%, transparent)'
 
 const detailsTheme = EditorView.baseTheme({
   '.md-details-hidden-line': {
@@ -1372,9 +1373,7 @@ const detailsTheme = EditorView.baseTheme({
   },
   '.md-details-summary-row': {
     alignItems: 'center',
-    background: 'var(--editor-bg-secondary, var(--bg-secondary))',
-    border: '1px solid var(--editor-border, var(--border-default))',
-    borderRadius: '9px',
+    background: 'transparent',
     boxSizing: 'border-box',
     color: 'var(--editor-text-heading, var(--text-heading))',
     display: 'flex',
@@ -1382,25 +1381,28 @@ const detailsTheme = EditorView.baseTheme({
     fontWeight: '620',
     gap: '8px',
     lineHeight: '1.5',
-    margin: '0.9em 0 0.2em',
-    minHeight: '40px',
-    padding: '8px 14px 8px 34px',
+    margin: '0.9em 0 0.15em',
+    minHeight: '34px',
+    padding: '6px 12px 6px 26px',
     position: 'relative',
-    transition: 'border-color 120ms ease, background-color 120ms ease',
     whiteSpace: 'normal',
-  },
-  '.md-details-summary-row:hover': {
-    borderColor: 'var(--editor-border-strong, var(--border-strong))',
   },
   '.md-details-summary-standalone': {
     margin: '0.9em 0',
   },
   '.md-details-summary-row.md-details-nested': {
-    borderRadius: '7px',
-    margin: '0.6em 14px 0.2em',
+    backgroundImage: `linear-gradient(to right, ${GUIDE} 0 2px, transparent 2px)`,
+    fontSize: '0.96em',
+    marginLeft: '26px',
   },
-  '.md-details-summary-row.md-details-nested.md-details-summary-standalone': {
-    margin: '0.6em 14px',
+  '.md-details-summary-row.md-details-nested::before': {
+    background: GUIDE,
+    bottom: '0',
+    content: '""',
+    left: '-26px',
+    position: 'absolute',
+    top: '0',
+    width: '2px',
   },
   '.md-details-chevron-button': {
     background: 'transparent',
@@ -1410,7 +1412,7 @@ const detailsTheme = EditorView.baseTheme({
     cursor: 'pointer',
     display: 'grid',
     height: '20px',
-    left: '9px',
+    left: '2px',
     padding: '0',
     placeItems: 'center',
     position: 'absolute',
@@ -1469,9 +1471,25 @@ const detailsTheme = EditorView.baseTheme({
     borderColor: 'color-mix(in srgb, var(--accent) 50%, var(--editor-border, var(--border-default)))',
     boxShadow: FOCUS_RING,
   },
-  /* Nested content sits one step in, level with the nested header. */
+  /* The body is indented under the title, with a guide showing its extent. */
+  '.md-details-body-line': {
+    backgroundImage:
+      `linear-gradient(to right, ${GUIDE} 0 2px, transparent 2px)`,
+    paddingLeft: '26px !important',
+  },
   '.md-details-body-nested': {
-    paddingLeft: '14px !important',
+    backgroundImage:
+      `linear-gradient(to right, ${GUIDE} 0 2px, transparent 2px 26px, ${GUIDE} 26px 28px, transparent 28px)`,
+    paddingLeft: '52px !important',
+  },
+  /* Markra's spacers sit between lines; carry the guide through them. */
+  '.md-details-body-line + .cm-markra-paragraph-spacer, .md-details-body-line + .cm-markra-heading-spacer, .md-details-body-line + .cm-markra-code-top-gap, .md-details-body-line + .cm-markra-blockquote-spacer, .md-details-body-line + .markra-callout-spacer': {
+    backgroundImage:
+      `linear-gradient(to right, ${GUIDE} 0 2px, transparent 2px)`,
+  },
+  '.md-details-body-line.md-details-body-nested + .cm-markra-paragraph-spacer, .md-details-body-line.md-details-body-nested + .cm-markra-heading-spacer, .md-details-body-line.md-details-body-nested + .cm-markra-code-top-gap, .md-details-body-line.md-details-body-nested + .cm-markra-blockquote-spacer, .md-details-body-line.md-details-body-nested + .markra-callout-spacer': {
+    backgroundImage:
+      `linear-gradient(to right, ${GUIDE} 0 2px, transparent 2px 26px, ${GUIDE} 26px 28px, transparent 28px)`,
   },
   '.md-details-block': {
     margin: '0.9em 0',
