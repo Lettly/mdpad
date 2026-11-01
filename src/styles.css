@@ -758,6 +758,25 @@ code {
   max-width: 100%;
 }
 
+/* A list item's wrapped lines and later paragraphs stay inside the item. The
+   item's first line already carries Markra's marker padding; these lines line
+   up with the text, at the same 1.35em per nesting level. A margin, not
+   padding, so a quote or code block keeps its own padding and moves as one. */
+.markdown-paper .cm-line.mdpad-list-continuation.mdpad-list-continuation {
+  margin-inline-start: calc(1.4em + var(--mdpad-list-depth, 0) * 1.35em);
+}
+
+/* Nested quotes move right instead of stacking every border in one place. */
+.markdown-paper .cm-line.mdpad-quote-nested {
+  margin-inline-start: calc(var(--mdpad-quote-depth, 0) * 1.1em);
+}
+
+/* A link reference definition (`[label]: url`) is metadata: GitHub renders
+   nothing for it, so it stays hidden until the caret enters its line. */
+.markdown-paper .cm-line.cm-markra-link-reference {
+  display: none;
+}
+
 /* Raw Markdown mode: the one surface mdpad still draws itself. */
 .raw-editor {
   flex: 1;

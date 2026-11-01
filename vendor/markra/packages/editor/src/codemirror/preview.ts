@@ -492,6 +492,41 @@ function buildDecorations(
       }
     }
 
+    if (node.name === "LinkReference") {
+      // A definition (`[label]: url`) is metadata, not prose: GitHub renders
+      // nothing for it. Keep it hidden until the caret enters its line, the way
+      // every other Markdown mark is revealed for editing.
+      if (
+        !isRevealed({
+          view,
+          state,
+          from: node.from,
+          to: node.to,
+          nodeName: node.name,
+          scope: "line",
+        })
+      ) {
+        const firstLine = state.doc.lineAt(node.from);
+        const lastLine = state.doc.lineAt(node.to);
+        for (
+          let lineNumber = firstLine.number;
+          lineNumber <= lastLine.number;
+          lineNumber += 1
+        ) {
+          const line = state.doc.line(lineNumber);
+          ranges.push(
+            Decoration.line({ class: "cm-markra-link-reference" }).range(
+              line.from,
+            ),
+          );
+          if (line.from < line.to) {
+            pushHiddenRange(ranges, state.doc, line.from, line.to);
+          }
+        }
+        return false;
+      }
+    }
+
     if (node.name === "Escape" && node.from < node.to) {
       // Visual mode renders the escaped character literally; the backslash remains available in
       // source mode and in the document model, so pasted plain text stays portable Markdown.

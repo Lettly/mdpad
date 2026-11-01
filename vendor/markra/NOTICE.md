@@ -67,6 +67,17 @@ future sync stays a straight copy.
      of being skipped, and a range nested inside another is dropped so
      replacements never overlap. Without this a `<img width="…">` — the usual
      way to size a logo — showed as source text.
+4. `packages/editor/src/codemirror/image.ts` and `links.ts` — reference-style
+   images (`![alt][label]`, `![alt][]`, `![alt]`) resolve their source from the
+   document's link reference definitions instead of falling back to source
+   text, which is what badge markup (`[![build][badge]][ci]`) is written as.
+   `links.ts` exports `normalizeMarkdownLinkLabel` for that lookup; nothing else
+   in it changed.
+5. `packages/editor/src/codemirror/preview.ts` — a `LinkReference` definition
+   (`[label]: url`) is hidden, like every other Markdown mark, until the caret
+   enters its line. GitHub renders nothing for a definition, so leaving it in
+   the flow showed a stray `[label]` and its URL as prose. The rule that hides
+   the line lives in `src/styles.css`.
 
 ## Why these two stubs
 

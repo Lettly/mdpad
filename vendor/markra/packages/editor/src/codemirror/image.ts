@@ -17,6 +17,10 @@ import {
   type MarkraSyntaxNode,
 } from "./renderers.ts";
 import { moveToEditableLine } from "./blank-lines.ts";
+import {
+  normalizeMarkdownLinkLabel,
+  readMarkdownLinkReferences,
+} from "./links.ts";
 import { unescapeMarkdown, unquoteMarkdownTitle } from "./syntax.ts";
 
 export interface MarkraImageSourceContext {
@@ -83,14 +87,33 @@ function imageDetails(
   const url = node.getChild("URL");
   const openingLabel = marks[0];
   const closingLabel = marks[1];
-  if (!url || !openingLabel || !closingLabel) return null;
+  if (!openingLabel || !closingLabel) return null;
+
+  const alt = unescapeMarkdown(
+    state.sliceDoc(openingLabel.to, closingLabel.from),
+  );
+  const markdown = state.sliceDoc(node.from, node.to);
+
+  if (!url) {
+    // `![alt][label]`, `![alt][]` and `![alt]` take their source from a link
+    // reference definition elsewhere in the document. Rendering them as text
+    // would leave the usual badge markup (`[![build][badge]][ci]`) unrendered.
+    const label = node.getChild("LinkLabel");
+    const referenceLabel = label && label.to > label.from + 2
+      ? state.sliceDoc(label.from, label.to)
+      : alt;
+    const source = readMarkdownLinkReferences(state).get(
+      normalizeMarkdownLinkLabel(referenceLabel),
+    );
+    return source
+      ? { alt, markdown, source, title: "" }
+      : null;
+  }
 
   const title = node.getChild("LinkTitle");
   return {
-    alt: unescapeMarkdown(
-      state.sliceDoc(openingLabel.to, closingLabel.from),
-    ),
-    markdown: state.sliceDoc(node.from, node.to),
+    alt,
+    markdown,
     source: unescapeMarkdown(state.sliceDoc(url.from, url.to).trim()),
     title: title
       ? unquoteMarkdownTitle(state.sliceDoc(title.from, title.to).trim())

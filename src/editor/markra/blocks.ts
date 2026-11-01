@@ -2,6 +2,7 @@ import { EditorState } from '@codemirror/state'
 import type { EditorView } from '@codemirror/view'
 import { defineMarkraPlugin, type MarkraPlugin } from '@markra/editor/codemirror'
 import { SNIPPETS, snippetPayload } from '../../lib/snippets'
+import { blockLayoutExtension } from './block-layout'
 
 /**
  * The blocks mdpad's toolbar adds that Markra has no command for. Each one is
@@ -62,6 +63,7 @@ function insertSnippet(id: string) {
 export function mdpadBlocksPlugin(): MarkraPlugin {
   return defineMarkraPlugin({
     id: 'mdpad.blocks',
+    extension: blockLayoutExtension(),
     commands: [
       {
         id: 'mdpad.divider',

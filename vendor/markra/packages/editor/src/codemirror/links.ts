@@ -56,7 +56,7 @@ export function resolveAutolinkTarget(source: string) {
   return resolveSafeLinkTarget(candidate);
 }
 
-function normalizeMarkdownLinkLabel(source: string) {
+export function normalizeMarkdownLinkLabel(source: string) {
   return unescapeMarkdown(source.replace(/^\[|\]$/gu, ""))
     .trim()
     .replace(/\s+/gu, " ")
