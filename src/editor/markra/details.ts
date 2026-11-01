@@ -22,7 +22,6 @@ import { markdownBlocks, markdownInline } from './markdown-html'
 export type DetailsBlock = { summary: string; body: string }
 
 const DETAILS = /^\s*<details[^>]*>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>\s*$/i
-const ANY_DETAILS = /<details\b[^>]*>[\s\S]*?<\/details>/gi
 
 export function parseDetails(source: string): DetailsBlock | null {
   const match = DETAILS.exec(source)
@@ -52,23 +51,36 @@ function isInsideCode(state: EditorState, position: number) {
   return false
 }
 
-/** Scans the document text: a blank line splits an HTML block in two. */
+/**
+ * Finds sections line by line: a `<details>` only opens a block when it starts
+ * a line, and the block ends at the first line that closes it. Matching the raw
+ * text instead would swallow a real section from a `<details>` written inline
+ * in prose.
+ */
 function detailsRanges(state: EditorState): DetailsRange[] {
-  const source = state.doc.toString()
   const ranges: DetailsRange[] = []
 
-  for (const match of source.matchAll(ANY_DETAILS)) {
-    const from = match.index
-    const details = parseDetails(match[0])
-    if (from === undefined || !details) continue
-    if (isInsideCode(state, from)) continue
+  for (let number = 1; number <= state.doc.lines; number += 1) {
+    const line = state.doc.line(number)
+    if (!/^[\t ]*<details\b/i.test(line.text)) continue
 
-    // Only a section on its own line is a block; one embedded in a sentence
-    // stays raw HTML, because replacing its lines would hide the sentence.
-    const line = state.doc.lineAt(from)
-    if (state.sliceDoc(line.from, from).trim()) continue
+    let end: { from: number; number: number; to: number } | null = null
+    for (let candidate = number; candidate <= state.doc.lines; candidate += 1) {
+      const closing = state.doc.line(candidate)
+      if (/<\/details>\s*$/i.test(closing.text)) {
+        end = { from: closing.from, number: candidate, to: closing.to }
+        break
+      }
+    }
+    if (!end) continue
 
-    ranges.push({ details, from, source: match[0], to: from + match[0].length })
+    const source = state.sliceDoc(line.from, end.to)
+    const details = parseDetails(source)
+    if (details && !isInsideCode(state, line.from)) {
+      ranges.push({ details, from: line.from, source, to: end.to })
+    }
+
+    number = end.number
   }
 
   return ranges
