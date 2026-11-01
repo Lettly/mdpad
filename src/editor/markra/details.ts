@@ -470,7 +470,10 @@ class DetailsSummaryWidget extends WidgetType {
   }
 
   get estimatedHeight() {
-    return 42
+    // Padding and one line of 0.98em text; a standalone row also carries the
+    // section's closing gap. Close enough that scrolling past an unmeasured
+    // section does not shift the lines below it.
+    return this.standalone ? 64 : 52
   }
 
   destroy() {
@@ -815,7 +818,8 @@ class DetailsWidget extends WidgetType {
   }
 
   get estimatedHeight() {
-    return this.open ? 120 : 42
+    // The shell plus the block's 0.9em of vertical padding.
+    return this.open ? 149 : 71
   }
 
   toDOM(view: EditorView) {
@@ -1381,14 +1385,17 @@ const detailsTheme = EditorView.baseTheme({
     fontWeight: '620',
     gap: '8px',
     lineHeight: '1.5',
-    margin: '0.9em 0 0.15em',
+    /* CodeMirror measures a widget's box and ignores margins, so the row's
+       rhythm is padding: a margin here shortens the height map and clicks
+       below the section land on the wrong line. */
+    margin: '0',
     minHeight: '34px',
-    padding: '6px 12px 6px 26px',
+    padding: 'calc(6px + 0.9em) 12px calc(6px + 0.15em) 26px',
     position: 'relative',
     whiteSpace: 'normal',
   },
   '.md-details-summary-standalone': {
-    margin: '0.9em 0',
+    padding: 'calc(6px + 0.9em) 12px calc(6px + 0.9em) 26px',
   },
   '.md-details-summary-row.md-details-nested': {
     backgroundImage: `linear-gradient(to right, ${GUIDE} 0 2px, transparent 2px)`,
@@ -1492,7 +1499,11 @@ const detailsTheme = EditorView.baseTheme({
       `linear-gradient(to right, ${GUIDE} 0 2px, transparent 2px 26px, ${GUIDE} 26px 28px, transparent 28px)`,
   },
   '.md-details-block': {
-    margin: '0.9em 0',
+    /* Vertical rhythm is padding, not margin: CodeMirror measures a block
+       widget's box and ignores margins, so margins here shorten the editor's
+       height map and every click below the section lands on the wrong line. */
+    margin: '0',
+    padding: '0.9em 0',
     position: 'relative',
     /* CodeMirror lines are `pre-wrap`; block HTML must not render the
        whitespace between its own tags. */

@@ -30,6 +30,8 @@ function keepEditorSelection(event: MouseEvent<HTMLElement>) {
 interface FloatingMenuPoint {
   left: number;
   top: number;
+  /** Present for caret anchors: the top of the caret, for flipping above. */
+  caretTop?: number;
 }
 
 interface FloatingMenuSize {
@@ -71,16 +73,19 @@ function useFloatingMenuStyle(
     const element = ref.current;
     if (!open || !element) return;
     const rect = element.getBoundingClientRect();
+    // The fallback only covers the frame before this measurement. Keeping it
+    // as a floor would place a filtered, one-row menu as if it were still the
+    // full-height list, far from the caret it belongs to.
     const next = {
-      height: Math.max(rect.height, element.scrollHeight, fallback.height),
-      width: Math.max(rect.width, element.scrollWidth, fallback.width),
+      height: Math.max(rect.height, element.scrollHeight),
+      width: Math.max(rect.width, element.scrollWidth),
     };
     setSize((current) =>
       current.height === next.height && current.width === next.width
         ? current
         : next,
     );
-  }, [fallback.height, fallback.width, open, revision]);
+  }, [open, revision]);
 
   if (!anchor) return { ref, style: undefined };
   const viewport = {
@@ -89,21 +94,33 @@ function useFloatingMenuStyle(
   };
   const availableHeight = viewport.height - floatingMenuMargin * 2;
   const maxHeight = Math.min(maximumHeight ?? availableHeight, availableHeight);
+  const menuHeight = Math.min(size.height, maxHeight);
   const fitted = fitCodeMirrorFloatingMenu(
     anchor,
     {
-      height: Math.min(size.height, maxHeight),
+      height: menuHeight,
       width: Math.min(size.width, viewport.width - floatingMenuMargin * 2),
     },
     viewport,
   );
+  // A menu that cannot fit below the caret would otherwise be clamped to the
+  // bottom edge and cover the line being typed. Flip it above the caret.
+  const fitsBelow =
+    anchor.top + menuHeight + floatingMenuMargin <= viewport.height;
+  const top =
+    fitsBelow || anchor.caretTop === undefined
+      ? fitted.top
+      : Math.max(
+          floatingMenuMargin,
+          anchor.caretTop - floatingMenuMargin - menuHeight,
+        );
   return {
     ref,
     style: {
       left: fitted.left,
       maxHeight,
       overflowY: "auto",
-      top: fitted.top,
+      top,
     } satisfies CSSProperties,
   };
 }
@@ -117,8 +134,10 @@ export function CodeMirrorEditorFloatingMenus({
   const documentLinks = useMarkraEditorDocumentLinks();
   const view = useMarkraEditorView();
   const selectedSlashOptionRef = useRef<HTMLButtonElement | null>(null);
-  const slashAnchor = useMarkraEditorCaretAnchor(slashMenu.to);
-  const documentLinkAnchor = useMarkraEditorCaretAnchor(documentLinks.to);
+  const slashAnchor = useMarkraEditorCaretAnchor(slashMenu.from ?? slashMenu.to);
+  const documentLinkAnchor = useMarkraEditorCaretAnchor(
+    documentLinks.from ?? documentLinks.to,
+  );
   const slashPlacement = useFloatingMenuStyle(
     slashAnchor,
     slashMenu.open,

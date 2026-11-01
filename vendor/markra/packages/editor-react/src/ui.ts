@@ -39,6 +39,8 @@ export interface MarkraEditorSelectionToolbarState {
 export interface MarkraEditorUiAnchor {
   readonly left: number;
   readonly top: number;
+  /** Top of the caret, so a menu that cannot fit below can flip above it. */
+  readonly caretTop?: number;
 }
 
 type AnchorMode = "caret" | "selection";
@@ -76,6 +78,7 @@ function useMeasuredAnchor(
         setAnchor(
           mode === "caret"
             ? {
+                caretTop: measurement.end.top,
                 left: measurement.end.left,
                 top: measurement.end.bottom + 8,
               }

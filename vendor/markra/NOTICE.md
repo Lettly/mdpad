@@ -78,6 +78,17 @@ future sync stays a straight copy.
    enters its line. GitHub renders nothing for a definition, so leaving it in
    the flow showed a stray `[label]` and its URL as prose. The rule that hides
    the line lives in `src/styles.css`.
+6. `packages/editor-react/src/ui.ts` — `MarkraEditorUiAnchor` carries an
+   optional `caretTop`, set in caret mode. A menu that cannot fit below the
+   caret needs the caret's top edge to flip above it instead of being clamped
+   to the bottom of the window.
+7. `src/markra/chrome/CodeMirrorEditorFloatingMenus.tsx` — three changes:
+   - the measured menu size no longer has the fallback size as a floor, so a
+     filtered one-row slash menu is not placed as if it were still the full
+     list;
+   - both menus anchor at `from` (the typed `/` or `[[`) rather than `to`, so
+     they stay put while the query grows instead of sliding with the caret;
+   - a menu that does not fit below the caret flips above it.
 
 ## Why these two stubs
 
