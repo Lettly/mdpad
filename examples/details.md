@@ -1,9 +1,9 @@
 # Collapsible sections
 
 A `<details>` block renders as a disclosure on GitHub. In mdpad it is one block: the summary and
-the content are both Markdown, and the section collapses as it does on GitHub. Hover it and press
-**Edit** — or double-click the summary or the content — to edit both parts in place. `⌘/Ctrl+Enter`
-saves, `Esc` cancels, and clicking elsewhere saves the draft.
+the content are both Markdown, and the section folds as it does on GitHub. Click into the content
+and type — it is ordinary editor text with live preview. Click the title to rename it, and the
+chevron folds the section; there is no dialog.
 
 ## Simple
 
@@ -85,7 +85,7 @@ The first body.
 <summary>Second section (open)</summary>
 
 The `open` attribute keeps a section expanded when the page loads. mdpad renders the same state:
-click the summary to open it while editing, and **Open by default** in the editor writes the
+click the chevron to open it while editing, and **Open by default** in the title editor writes the
 attribute.
 
 </details>

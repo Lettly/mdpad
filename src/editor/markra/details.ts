@@ -1,5 +1,13 @@
 import { syntaxTree } from '@codemirror/language'
-import { EditorState, StateEffect, StateField, type Extension, type Range } from '@codemirror/state'
+import {
+  EditorState,
+  StateEffect,
+  StateField,
+  type Extension,
+  type Line,
+  type Range,
+  RangeSet,
+} from '@codemirror/state'
 import {
   Decoration,
   EditorView,
@@ -14,9 +22,10 @@ import { markdownBlocks, markdownInline } from './markdown-html'
  * markup: the summary is not parsed as Markdown and the body — which lives
  * after a blank line, so it is a separate HTML block — leaks out of the box.
  *
- * mdpad therefore renders the whole `<details>…</details>` range as one block.
- * The summary and the body are both Markdown, the section collapses like it
- * does on GitHub, and editing happens in place: no dialog, no separate mode.
+ * mdpad therefore turns the section into editor structure: the wrapper tags
+ * are hidden, the summary is a row you can rename in place, and the body stays
+ * ordinary editor lines. Markra's live preview edits that body directly, so
+ * there is no dialog and no mode switch: click the content and type.
  */
 
 export type DetailsBlock = {
@@ -105,6 +114,8 @@ function findSummary(inner: string) {
 
     return {
       content: inner.slice(contentFrom, contentFrom + close.index),
+      contentFrom,
+      contentTo: contentFrom + close.index,
       from: match.index,
       to: contentFrom + close.index + close[0].length,
     }
@@ -124,13 +135,25 @@ function withoutOpenAttribute(attributes: string) {
     .trim()
 }
 
+/** Offsets let the editor keep the body as real, directly editable lines. */
+export type DetailsLayout = DetailsBlock & {
+  openTagFrom: number
+  openTagTo: number
+  summaryFrom: number
+  summaryTo: number
+  summaryContentFrom: number
+  summaryContentTo: number
+  closeFrom: number
+  closeTo: number
+}
+
 /**
  * Parses a whole section. The close tag is matched by depth, so a nested
  * section stays inside the outer one instead of ending it early; a missing
  * close tag keeps the rest of the document, which is what a browser does with
  * malformed HTML too.
  */
-export function parseDetails(source: string): DetailsBlock | null {
+export function parseDetailsLayout(source: string): DetailsLayout | null {
   const masked = maskFencedCode(source)
   const start = masked.search(/<details\b/i)
   if (start < 0 || masked.slice(0, start).trim()) return null
@@ -160,14 +183,23 @@ export function parseDetails(source: string): DetailsBlock | null {
     }
   }
 
-  const inner = source.slice(openEnd + 1, closeStart)
+  const innerFrom = openEnd + 1
+  const inner = source.slice(innerFrom, closeStart)
   const summary = findSummary(inner)
 
   return {
     attributes: withoutOpenAttribute(attributes),
     body: (summary ? inner.slice(0, summary.from) + inner.slice(summary.to) : inner).trim(),
+    closeFrom: closeStart,
+    closeTo: closeEnd,
     open: hasOpenAttribute(attributes),
+    openTagFrom: start,
+    openTagTo: innerFrom,
     summary: summary?.content.trim() ?? '',
+    summaryContentFrom: summary ? innerFrom + summary.contentFrom : -1,
+    summaryContentTo: summary ? innerFrom + summary.contentTo : -1,
+    summaryFrom: summary ? innerFrom + summary.from : -1,
+    summaryTo: summary ? innerFrom + summary.to : -1,
     trailing: source.slice(closeEnd),
   }
 }
@@ -209,7 +241,7 @@ function tagCount(line: string, pattern: RegExp) {
   return (line.match(pattern) ?? []).length
 }
 
-type DetailsRange = { block: DetailsBlock; from: number; source: string; to: number }
+type DetailsRange = { block: DetailsBlock; from: number; layout: DetailsLayout; source: string; to: number }
 
 /**
  * Finds sections line by line: a `<details>` only opens a block when it starts
@@ -249,14 +281,69 @@ function detailsRanges(state: EditorState): DetailsRange[] {
 
     const to = endNumber > 0 ? state.doc.line(endNumber).to : state.doc.length
     const source = state.sliceDoc(line.from, to)
-    const block = parseDetails(source)
-    if (!block) continue
+    const layout = parseDetailsLayout(source)
+    if (!layout) continue
 
-    ranges.push({ block, from: line.from, source, to })
-    number = endNumber > 0 ? endNumber : state.doc.lines
+    ranges.push({ block: layout, from: line.from, layout, source, to })
   }
 
   return ranges
+}
+
+type EditableSection = {
+  bodyFirst: number
+  bodyLast: number
+  closeFrom: number
+  closeTo: number
+  closeLine: Line
+  openLine: Line
+  summaryContentFrom: number
+  summaryContentTo: number
+  summaryLine: Line
+}
+
+/**
+ * The layout a section needs to become directly editable: the wrapper tags
+ * each on a line of their own, a one-line summary, and a body that is ordinary
+ * Markdown between them. Anything else keeps the rendered block widget.
+ */
+function editableSection(state: EditorState, range: DetailsRange): EditableSection | null {
+  const { layout, source } = range
+  if (layout.summaryFrom < 0) return null
+
+  const openLine = state.doc.lineAt(range.from)
+  if (source.slice(layout.openTagTo, openLine.to - range.from).trim()) return null
+
+  const summaryStart = range.from + layout.summaryFrom
+  const summaryEnd = range.from + layout.summaryTo
+  const summaryLine = state.doc.lineAt(summaryStart)
+  if (state.doc.lineAt(summaryEnd).number !== summaryLine.number) return null
+  if (summaryLine.number <= openLine.number) return null
+  if (source.slice(summaryLine.from - range.from, layout.summaryFrom).trim()) return null
+  if (source.slice(layout.summaryTo, summaryLine.to - range.from).trim()) return null
+  if (source.slice(layout.summaryContentFrom, layout.summaryContentTo).includes('\n')) return null
+
+  const closeLine = state.doc.lineAt(range.from + layout.closeFrom)
+  if (state.doc.lineAt(range.from + layout.closeTo).number !== closeLine.number) return null
+  if (closeLine.number <= summaryLine.number + 1) return null
+  if (source.slice(closeLine.from - range.from, layout.closeFrom).trim()) return null
+  if (source.slice(layout.closeTo).trim()) return null
+
+  return {
+    bodyFirst: summaryLine.number + 1,
+    bodyLast: closeLine.number - 1,
+    closeFrom: range.from + layout.closeFrom,
+    closeTo: range.from + layout.closeTo,
+    closeLine,
+    openLine,
+    summaryContentFrom: range.from + layout.summaryContentFrom,
+    summaryContentTo: range.from + layout.summaryContentTo,
+    summaryLine,
+  }
+}
+
+function rangeAt(state: EditorState, from: number) {
+  return detailsRanges(state).find((range) => range.from === from)
 }
 
 /* ------------------------------------------------------------ open state */
@@ -308,23 +395,375 @@ const pendingEdit = new Map<string, EditFocus>()
 /** The one open inline editor, so opening another one commits the draft. */
 let activeEditor: { commit: () => boolean; dispose: () => void } | null = null
 
+/** The summary input that is open, and the one waiting for a rebuild. */
+let activeSummary: { sectionFrom: number; commit: () => boolean; dispose: () => void } | null = null
+let pendingSummaryEdit: string | null = null
+
 /**
  * Drops editor state that belongs to a document which is no longer open: the
  * widget DOM is gone, and a stale commit would edit the wrong file.
  */
 export function resetDetailsState() {
   pendingEdit.clear()
+  pendingSummaryEdit = null
+  activeSummary?.dispose()
+  activeSummary = null
   activeEditor?.dispose()
   activeEditor = null
 }
 
 /* --------------------------------------------------------------- widget */
 
-const PENCIL =
-  '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.2 2.3a1.6 1.6 0 0 1 2.3 2.3l-7.4 7.4-3 .7.7-3 7.4-7.4Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>'
-
 const CHEVRON =
   '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+/**
+ * The top row of a section. The body below it is ordinary editor content, so
+ * the row only has to offer the summary: click the title to edit it, click the
+ * chevron to fold the section. No buttons, no dialog.
+ */
+class DetailsSummaryWidget extends WidgetType {
+  private readonly block: DetailsBlock
+  private readonly source: string
+  private readonly open: boolean
+  private readonly sectionFrom: number
+  private readonly standalone: boolean
+  private readonly nested: boolean
+  private readonly options: DetailsPluginOptions
+  private dispose: (() => void) | null = null
+  /** An open title input must not be reused as the new widget's DOM. */
+  private editing = false
+
+  constructor(
+    block: DetailsBlock,
+    source: string,
+    open: boolean,
+    sectionFrom: number,
+    options: DetailsPluginOptions,
+    standalone = false,
+    nested = false,
+  ) {
+    super()
+    this.block = block
+    this.source = source
+    this.open = open
+    this.sectionFrom = sectionFrom
+    this.options = options
+    this.standalone = standalone
+    this.nested = nested
+  }
+
+  eq(other: DetailsSummaryWidget) {
+    return (
+      other.block.summary === this.block.summary &&
+      other.open === this.open &&
+      other.sectionFrom === this.sectionFrom &&
+      other.standalone === this.standalone &&
+      other.nested === this.nested &&
+      !this.editing &&
+      !other.editing
+    )
+  }
+
+  ignoreEvent() {
+    return true
+  }
+
+  get estimatedHeight() {
+    return 42
+  }
+
+  destroy() {
+    this.dispose?.()
+    this.dispose = null
+  }
+
+  toDOM(view: EditorView) {
+    const document = view.dom.ownerDocument
+
+    const root = document.createElement('div')
+    root.className = [
+      'md-details-summary-row',
+      this.standalone ? 'md-details-summary-standalone' : '',
+      this.nested ? 'md-details-nested' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    root.dataset.open = String(this.open)
+    root.dataset.collapsed = String(!this.open)
+
+    let editing = false
+    let closing = false
+    let finishDraft: ((focusBody: boolean) => boolean) | null = null
+
+    const buildLabel = (): HTMLElement => {
+      const label = document.createElement('span')
+      label.className = 'md-details-summary'
+      label.tabIndex = 0
+      label.setAttribute('role', 'button')
+      label.title = 'Edit section title'
+
+      const inline = markdownInline(this.block.summary, document)
+      if (inline.length > 0) label.append(...inline)
+      else {
+        label.textContent = 'Details'
+        label.classList.add('is-empty')
+      }
+
+      label.addEventListener('mousedown', (event) => {
+        if ((event.target as Element | null)?.closest('a[href]')) return
+        startEditing(event)
+      })
+      label.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        startEditing(event)
+      })
+
+      return label
+    }
+
+    const renderLabel = () => {
+      editing = false
+      this.editing = false
+      root.querySelector('.md-details-open-control')?.remove()
+      const label = buildLabel()
+      const input = root.querySelector('.md-details-summary-input')
+      if (input) input.replaceWith(label)
+      else if (!root.querySelector('.md-details-summary')) root.append(label)
+    }
+
+    const startEditing = (event?: Event, selectAll = false) => {
+      event?.preventDefault()
+      event?.stopPropagation()
+      if (editing) return
+
+      if (activeSummary && activeSummary.sectionFrom !== this.sectionFrom) {
+        pendingSummaryEdit = this.source
+        if (activeSummary.commit()) return
+        pendingSummaryEdit = null
+      }
+
+      editing = true
+      this.editing = true
+      closing = false
+
+      const input = document.createElement('input')
+      input.type = 'text'
+      input.className = 'md-details-summary-input'
+      input.value = this.block.summary
+      input.placeholder = 'Section title'
+      input.spellcheck = true
+      input.setAttribute('aria-label', 'Section title')
+
+      const openControl = document.createElement('label')
+      openControl.className = 'md-details-open-control'
+      const openCheckbox = document.createElement('input')
+      openCheckbox.type = 'checkbox'
+      openCheckbox.checked = this.block.open
+      openCheckbox.setAttribute('aria-label', 'Open by default')
+      // Keep the title input focused while the checkbox is clicked, or the
+      // blur would commit before the checkbox state is read.
+      openControl.addEventListener('mousedown', (event) => event.preventDefault())
+      openControl.addEventListener('keydown', (event) => event.stopPropagation())
+      openControl.append(openCheckbox, document.createTextNode('Open by default'))
+
+      const finish = (focusBody: boolean, cancel: boolean): boolean => {
+        if (closing) return false
+        closing = true
+        if (activeSummary?.sectionFrom === this.sectionFrom) activeSummary = null
+        finishDraft = null
+
+        if (cancel) {
+          renderLabel()
+          return false
+        }
+
+        const value = input.value.trim()
+        const nextOpen = openCheckbox.checked
+        const summaryChanged = value !== this.block.summary.trim()
+        const openChanged = nextOpen !== this.block.open
+        if (!summaryChanged && !openChanged) {
+          renderLabel()
+          return false
+        }
+
+        const current = rangeAt(view.state, this.sectionFrom)
+        if (!current || current.layout.summaryContentFrom < 0) {
+          renderLabel()
+          return false
+        }
+
+        const changes: Array<{ from: number; insert: string; to: number }> = []
+        if (summaryChanged) {
+          changes.push({
+            from: current.from + current.layout.summaryContentFrom,
+            insert: value,
+            to: current.from + current.layout.summaryContentTo,
+          })
+        }
+        if (openChanged) {
+          const attributes = [nextOpen ? 'open' : '', current.block.attributes.trim()]
+            .filter(Boolean)
+            .join(' ')
+          changes.push({
+            from: current.from + current.layout.openTagFrom,
+            insert: `<details${attributes ? ` ${attributes}` : ''}>`,
+            to: current.from + current.layout.openTagTo,
+          })
+        }
+
+        // Changing the default must not fold the section the author is in.
+        const effects = openChanged ? setDetailsOpen.of({ from: current.from, open: this.open }) : undefined
+        view.dispatch({ changes, effects, userEvent: 'input' })
+        if (focusBody) {
+          // Positions after the edits are only known once they are applied.
+          const next = rangeAt(view.state, this.sectionFrom)
+          const nextSection = next ? editableSection(view.state, next) : null
+          if (this.open && nextSection) {
+            view.dispatch({
+              selection: { anchor: view.state.doc.line(nextSection.bodyFirst).from },
+            })
+          }
+          view.focus()
+        }
+        return true
+      }
+
+      finishDraft = (focusBody) => finish(focusBody, false)
+      activeSummary = {
+        sectionFrom: this.sectionFrom,
+        commit: () => finishDraft?.(false) ?? false,
+        dispose: () => {
+          closing = true
+        },
+      }
+
+      input.addEventListener('keydown', (event) => {
+        event.stopPropagation()
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          finish(false, true)
+        } else if (event.key === 'Enter') {
+          event.preventDefault()
+          finish(true, false)
+        }
+      })
+      // Commit after the click that blurred the title has moved the caret.
+      // Committing during the mousedown rebuilds the lines under it.
+      input.addEventListener('blur', () => {
+        window.setTimeout(() => {
+          if (closing) return
+          finish(false, false)
+        }, 0)
+      })
+      input.addEventListener('mousedown', (event) => event.stopPropagation())
+
+      const label = root.querySelector('.md-details-summary')
+      label?.replaceWith(input)
+      root.append(openControl)
+      input.focus()
+      if (selectAll) input.select()
+      else input.setSelectionRange(input.value.length, input.value.length)
+    }
+
+    const chevron = document.createElement('button')
+    chevron.type = 'button'
+    chevron.className = 'md-details-chevron-button'
+    chevron.innerHTML = CHEVRON
+    chevron.setAttribute('aria-label', this.open ? 'Collapse section' : 'Expand section')
+    chevron.setAttribute('aria-expanded', String(this.open))
+
+    let pointerHandled = false
+    const toggle = (event?: Event) => {
+      event?.preventDefault()
+      event?.stopPropagation()
+      finishDraft?.(false)
+
+      const current = rangeAt(view.state, this.sectionFrom)
+      if (!current) return
+      const section = editableSection(view.state, current)
+      const next = !this.open
+
+      let selection: { anchor: number } | undefined
+      if (!next && section) {
+        const active = view.state.selection.main
+        const bodyFrom = view.state.doc.line(section.bodyFirst).from
+        if (active.from <= section.closeLine.from && active.to >= bodyFrom) {
+          selection = { anchor: Math.min(section.closeLine.to + 1, view.state.doc.length) }
+        }
+      }
+
+      view.dispatch({
+        effects: setDetailsOpen.of({ from: current.from, open: next }),
+        selection,
+      })
+      if (selection) view.focus()
+    }
+
+    chevron.addEventListener('mousedown', (event) => {
+      pointerHandled = true
+      toggle(event)
+    })
+    chevron.addEventListener('click', (event) => {
+      if (pointerHandled) {
+        pointerHandled = false
+        return
+      }
+      toggle(event)
+    })
+
+    root.addEventListener('mousedown', (event) => event.stopPropagation())
+    root.addEventListener('click', (event) => {
+      const target = event.target as Element | null
+      const anchor = target?.closest('a[href]')
+      if (!anchor) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      const href = anchor.getAttribute('href')?.trim() ?? ''
+      if (!href || href.startsWith('#')) return
+      const resolved =
+        this.options.resolveLinkHref?.(href) ?? (/^[a-z][a-z\d+.-]*:/i.test(href) ? href : null)
+      if (resolved) this.options.openExternalUrl?.(resolved)
+    })
+
+    root.append(chevron, buildLabel())
+
+    this.dispose = () => {
+      closing = true
+      if (activeSummary?.sectionFrom === this.sectionFrom) activeSummary = null
+      finishDraft = null
+    }
+
+    if (pendingSummaryEdit === this.source) {
+      pendingSummaryEdit = null
+      window.requestAnimationFrame(() => {
+        if (root.isConnected) startEditing(undefined, true)
+      })
+    }
+
+    return root
+  }
+}
+
+/** The gap below a section. A widget has no caret position inside it. */
+class DetailsSpacerWidget extends WidgetType {
+  eq() {
+    return true
+  }
+
+  get estimatedHeight() {
+    return 14
+  }
+
+  toDOM() {
+    const spacer = document.createElement('div')
+    spacer.className = 'md-details-close-spacer'
+    spacer.setAttribute('aria-hidden', 'true')
+    return spacer
+  }
+}
 
 class DetailsWidget extends WidgetType {
   private readonly block: DetailsBlock
@@ -387,16 +826,9 @@ class DetailsWidget extends WidgetType {
     root.className = 'md-details-block'
     root.dataset.open = String(this.open)
 
-    const editButton = document.createElement('button')
-    editButton.type = 'button'
-    editButton.className = 'md-details-edit'
-    editButton.title = 'Edit section'
-    editButton.setAttribute('aria-label', 'Edit collapsible section')
-    editButton.innerHTML = `${PENCIL}<span>Edit</span>`
-
     const shell = document.createElement('div')
     shell.className = 'md-details-shell'
-    root.append(editButton, shell)
+    root.append(shell)
 
     let editing = false
     let closing = false
@@ -434,7 +866,7 @@ class DetailsWidget extends WidgetType {
       }
 
       summary.append(chevron, label)
-      summary.title = 'Double-click to edit the summary'
+      summary.title = 'Double-click to edit the section'
       summary.addEventListener('dblclick', (event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -624,24 +1056,9 @@ class DetailsWidget extends WidgetType {
 
       const hint = document.createElement('span')
       hint.className = 'md-details-editor-hint'
-      hint.textContent = 'Markdown · ⌘/Ctrl+↵ to save · Esc to cancel'
+      hint.textContent = 'Markdown · ⌘/Ctrl+↵ or click away to save · Esc to cancel'
 
-      const actions = document.createElement('div')
-      actions.className = 'md-details-editor-actions'
-
-      const cancelButton = document.createElement('button')
-      cancelButton.type = 'button'
-      cancelButton.textContent = 'Cancel'
-      cancelButton.addEventListener('mousedown', (event) => event.preventDefault())
-      cancelButton.addEventListener('click', cancel)
-
-      const saveButton = document.createElement('button')
-      saveButton.type = 'submit'
-      saveButton.className = 'is-primary'
-      saveButton.textContent = 'Done'
-
-      actions.append(cancelButton, saveButton)
-      foot.append(hint, actions)
+      foot.append(hint)
       form.append(head, summary, body, foot)
 
       const resize = () => {
@@ -727,16 +1144,6 @@ class DetailsWidget extends WidgetType {
       startEditing(focus)
     }
 
-    const openEditor = (event: Event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      requestEdit('summary')
-    }
-    // A real click opens on mousedown so CodeMirror cannot move the caret
-    // first; the click listener covers keyboard activation.
-    editButton.addEventListener('mousedown', openEditor)
-    editButton.addEventListener('click', openEditor)
-
     /* -------------------------------------------------------------- events */
 
     root.addEventListener('mousedown', (event) => event.stopPropagation())
@@ -793,24 +1200,145 @@ class DetailsWidget extends WidgetType {
 function buildDecorations(state: EditorState, options: DetailsPluginOptions) {
   const preview = state.field(detailsOpenState, false)
   const decorations: Range<Decoration>[] = []
+  const fallbacks: Array<{ from: number; to: number }> = []
+  const stack: DetailsRange[] = []
 
   for (const range of detailsRanges(state)) {
-    const firstLine = state.doc.lineAt(range.from)
-    const lastLine = state.doc.lineAt(range.to)
-    const open = preview?.get(range.from) ?? range.block.open
+    while (
+      stack.length > 0 &&
+      !(range.from > stack[stack.length - 1].from && range.to <= stack[stack.length - 1].to)
+    ) {
+      stack.pop()
+    }
+    const nested = stack.length > 0
+    stack.push(range)
 
-    // A block widget has to cover whole lines; a section always starts its own
-    // line, so that is exactly the range it occupies.
+    if (fallbacks.some((fallback) => range.from >= fallback.from && range.to <= fallback.to)) {
+      continue
+    }
+
+    const open = preview?.get(range.from) ?? range.block.open
+    const section = editableSection(state, range)
+
+    // A standard section keeps its body as real editor lines, so Markra's live
+    // preview edits it directly. Anything unusual keeps the rendered widget.
+    if (!section) {
+      fallbacks.push({ from: range.from, to: range.to })
+      decorations.push(
+        Decoration.replace({
+          block: true,
+          widget: new DetailsWidget(
+            range.block,
+            range.source,
+            range.from,
+            range.to,
+            open,
+            options,
+          ),
+        }).range(state.doc.lineAt(range.from).from, state.doc.lineAt(range.to).to),
+      )
+      continue
+    }
+
+    if (!open) {
+      // Collapsed is one row. Hiding lines would leave Markra's spacers
+      // behind and the caret could wander into invisible content.
+      decorations.push(
+        Decoration.replace({
+          block: true,
+          widget: new DetailsSummaryWidget(
+            range.block,
+            range.source,
+            false,
+            range.from,
+            options,
+            true,
+            nested,
+          ),
+        }).range(state.doc.lineAt(range.from).from, state.doc.lineAt(range.to).to),
+      )
+      continue
+    }
+
+    decorations.push(
+      Decoration.line({ class: 'md-details-hidden-line' }).range(section.openLine.from),
+    )
+
     decorations.push(
       Decoration.replace({
         block: true,
-        widget: new DetailsWidget(range.block, range.source, range.from, range.to, open, options),
-      }).range(firstLine.from, lastLine.to),
+        widget: new DetailsSummaryWidget(
+          range.block,
+          range.source,
+          open,
+          range.from,
+          options,
+          false,
+          nested,
+        ),
+      }).range(section.summaryLine.from, section.summaryLine.to),
+    )
+
+    if (nested) {
+      for (let number = section.bodyFirst; number <= section.bodyLast; number += 1) {
+        decorations.push(
+          Decoration.line({ class: 'md-details-body-nested' }).range(state.doc.line(number).from),
+        )
+      }
+    }
+
+    // The closing tag is markup, not content. A block spacer keeps the gap
+    // below the box without giving the caret a line to land on.
+    decorations.push(
+      Decoration.replace({ block: true, widget: new DetailsSpacerWidget() }).range(
+        section.closeLine.from,
+        section.closeLine.to,
+      ),
     )
   }
 
   return Decoration.set(decorations, true)
 }
+
+/** Wrapper tags and a collapsed section are structure, not caret targets. */
+function buildAtomicRanges(state: EditorState): RangeSet<Decoration> {
+  const preview = state.field(detailsOpenState, false)
+  const ranges: Range<Decoration>[] = []
+  const fallbacks: Array<{ from: number; to: number }> = []
+
+  for (const range of detailsRanges(state)) {
+    if (fallbacks.some((fallback) => range.from >= fallback.from && range.to <= fallback.to)) {
+      continue
+    }
+
+    const open = preview?.get(range.from) ?? range.block.open
+    const section = editableSection(state, range)
+    if (!section || !open) {
+      fallbacks.push({ from: range.from, to: range.to })
+      ranges.push(
+        Decoration.mark({}).range(
+          state.doc.lineAt(range.from).from,
+          state.doc.lineAt(range.to).to,
+        ),
+      )
+      continue
+    }
+
+    ranges.push(Decoration.mark({}).range(section.openLine.from, section.openLine.to))
+    ranges.push(Decoration.mark({}).range(section.summaryLine.from, section.summaryLine.to))
+  }
+
+  return RangeSet.of(ranges, true)
+}
+
+const detailsAtomic = StateField.define<RangeSet<Decoration>>({
+  create: (state) => buildAtomicRanges(state),
+  update: (value, transaction) => {
+    const openChanged =
+      transaction.startState.field(detailsOpenState) !== transaction.state.field(detailsOpenState)
+    return transaction.docChanged || openChanged ? buildAtomicRanges(transaction.state) : value
+  },
+})
 
 /**
  * A block widget replaces whole lines, and CodeMirror only accepts those from
@@ -819,10 +1347,13 @@ function buildDecorations(state: EditorState, options: DetailsPluginOptions) {
 function detailsField(options: DetailsPluginOptions) {
   return StateField.define<DecorationSet>({
     create: (state) => buildDecorations(state, options),
-    // Toggling a section updates `detailsOpenState` without rebuilding: the
-    // DOM has already toggled, and the stored state is read on the next edit.
-    update: (value, transaction) =>
-      transaction.docChanged ? buildDecorations(transaction.state, options) : value,
+    update: (value, transaction) => {
+      const openChanged =
+        transaction.startState.field(detailsOpenState) !== transaction.state.field(detailsOpenState)
+      return transaction.docChanged || openChanged
+        ? buildDecorations(transaction.state, options)
+        : value
+    },
     provide: (field) => EditorView.decorations.from(field),
   })
 }
@@ -833,6 +1364,115 @@ const MONO = 'var(--editor-code-font-family, ui-monospace, SFMono-Regular, Menlo
 const FOCUS_RING = '0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent)'
 
 const detailsTheme = EditorView.baseTheme({
+  '.md-details-hidden-line': {
+    display: 'none',
+  },
+  '.md-details-close-spacer': {
+    height: '0.9em',
+  },
+  '.md-details-summary-row': {
+    alignItems: 'center',
+    background: 'var(--editor-bg-secondary, var(--bg-secondary))',
+    border: '1px solid var(--editor-border, var(--border-default))',
+    borderRadius: '9px',
+    boxSizing: 'border-box',
+    color: 'var(--editor-text-heading, var(--text-heading))',
+    display: 'flex',
+    fontSize: '0.98em',
+    fontWeight: '620',
+    gap: '8px',
+    lineHeight: '1.5',
+    margin: '0.9em 0 0.2em',
+    minHeight: '40px',
+    padding: '8px 14px 8px 34px',
+    position: 'relative',
+    transition: 'border-color 120ms ease, background-color 120ms ease',
+    whiteSpace: 'normal',
+  },
+  '.md-details-summary-row:hover': {
+    borderColor: 'var(--editor-border-strong, var(--border-strong))',
+  },
+  '.md-details-summary-standalone': {
+    margin: '0.9em 0',
+  },
+  '.md-details-summary-row.md-details-nested': {
+    borderRadius: '7px',
+    margin: '0.6em 14px 0.2em',
+  },
+  '.md-details-summary-row.md-details-nested.md-details-summary-standalone': {
+    margin: '0.6em 14px',
+  },
+  '.md-details-chevron-button': {
+    background: 'transparent',
+    border: '0',
+    borderRadius: '5px',
+    color: 'var(--editor-text-secondary, var(--text-secondary))',
+    cursor: 'pointer',
+    display: 'grid',
+    height: '20px',
+    left: '9px',
+    padding: '0',
+    placeItems: 'center',
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    width: '20px',
+  },
+  '.md-details-chevron-button:hover': {
+    background: 'var(--bg-hover)',
+    color: 'var(--editor-text-heading, var(--text-heading))',
+  },
+  '.md-details-chevron-button:focus-visible': {
+    outline: '2px solid color-mix(in srgb, var(--accent) 45%, transparent)',
+    outlineOffset: '1px',
+  },
+  '.md-details-chevron-button svg': {
+    height: '15px',
+    transition: 'transform 140ms ease',
+    width: '15px',
+  },
+  '.md-details-summary-row[data-open="true"] .md-details-chevron-button svg': {
+    transform: 'rotate(90deg)',
+  },
+  '.md-details-summary-row .md-details-summary': {
+    cursor: 'text',
+    flex: '1 1 auto',
+    minWidth: '0',
+    outline: 'none',
+    overflowWrap: 'anywhere',
+  },
+  '.md-details-summary-row .md-details-summary:focus-visible': {
+    borderRadius: '4px',
+    outline: '2px solid color-mix(in srgb, var(--accent) 45%, transparent)',
+    outlineOffset: '2px',
+  },
+  '.md-details-summary-row .md-details-summary.is-empty': {
+    color: 'var(--editor-text-secondary, var(--text-secondary))',
+    fontStyle: 'italic',
+    fontWeight: '520',
+  },
+  '.md-details-summary-row .md-details-summary-input': {
+    background: 'var(--editor-paper-bg, var(--bg-primary))',
+    border: '1px solid var(--editor-border, var(--border-default))',
+    borderRadius: '5px',
+    boxSizing: 'border-box',
+    color: 'var(--editor-text-heading, var(--text-heading))',
+    flex: '1 1 auto',
+    font: 'inherit',
+    fontWeight: '620',
+    minWidth: '0',
+    outline: 'none',
+    padding: '4px 7px',
+    width: '100%',
+  },
+  '.md-details-summary-row .md-details-summary-input:focus': {
+    borderColor: 'color-mix(in srgb, var(--accent) 50%, var(--editor-border, var(--border-default)))',
+    boxShadow: FOCUS_RING,
+  },
+  /* Nested content sits one step in, level with the nested header. */
+  '.md-details-body-nested': {
+    paddingLeft: '14px !important',
+  },
   '.md-details-block': {
     margin: '0.9em 0',
     position: 'relative',
@@ -1155,51 +1795,6 @@ const detailsTheme = EditorView.baseTheme({
   },
 
   /* edit affordance */
-  '.md-details-edit': {
-    alignItems: 'center',
-    background: 'var(--editor-paper-bg, var(--bg-primary))',
-    border: '1px solid var(--editor-border, var(--border-default))',
-    borderRadius: '6px',
-    color: 'var(--editor-text-secondary, var(--text-secondary))',
-    cursor: 'pointer',
-    display: 'inline-flex',
-    font: 'inherit',
-    fontSize: '0.76em',
-    fontWeight: '560',
-    gap: '5px',
-    height: '26px',
-    lineHeight: '1',
-    opacity: '0',
-    padding: '0 9px',
-    position: 'absolute',
-    right: '8px',
-    top: '7px',
-    transform: 'translateY(-1px)',
-    transition: 'opacity 120ms ease, transform 120ms ease, background-color 120ms ease, color 120ms ease',
-    zIndex: '2',
-  },
-  '.md-details-edit svg': {
-    height: '12px',
-    width: '12px',
-  },
-  '.md-details-block:hover .md-details-edit, .md-details-edit:focus-visible': {
-    opacity: '1',
-    transform: 'none',
-  },
-  '.md-details-edit:hover': {
-    background: 'var(--bg-hover)',
-    color: 'var(--editor-text-heading, var(--text-heading))',
-  },
-  '.md-details-block[data-editing="true"] .md-details-edit': {
-    display: 'none',
-  },
-  /* A touch screen has no hover, so the edit affordance stays visible. */
-  '@media (hover: none)': {
-    '.md-details-edit': {
-      opacity: '1',
-    },
-  },
-
   /* inline editor */
   '.md-details-editor': {
     background: 'var(--editor-paper-bg, var(--bg-primary))',
@@ -1227,9 +1822,11 @@ const detailsTheme = EditorView.baseTheme({
     color: 'var(--editor-text-secondary, var(--text-secondary))',
     cursor: 'pointer',
     display: 'inline-flex',
+    flex: '0 0 auto',
     fontSize: '0.78em',
     gap: '6px',
     userSelect: 'none',
+    whiteSpace: 'nowrap',
   },
   '.md-details-open-control input': {
     accentColor: 'var(--accent)',
@@ -1284,44 +1881,18 @@ const detailsTheme = EditorView.baseTheme({
     color: 'var(--editor-text-secondary, var(--text-secondary))',
     fontSize: '0.74em',
   },
-  '.md-details-editor-actions': {
-    display: 'flex',
-    gap: '6px',
-  },
-  '.md-details-editor-actions button': {
-    background: 'var(--editor-paper-bg, var(--bg-primary))',
-    border: '1px solid var(--editor-border, var(--border-default))',
-    borderRadius: '6px',
-    color: 'var(--editor-text-primary, var(--text-primary))',
-    cursor: 'pointer',
-    font: 'inherit',
-    fontSize: '0.8em',
-    fontWeight: '560',
-    height: '28px',
-    padding: '0 12px',
-  },
-  '.md-details-editor-actions button:hover': {
-    background: 'var(--bg-hover)',
-  },
-  '.md-details-editor-actions button:focus-visible': {
-    outline: '2px solid var(--accent)',
-    outlineOffset: '2px',
-  },
-  '.md-details-editor-actions button.is-primary': {
-    background: 'var(--accent)',
-    borderColor: 'var(--accent)',
-    color: 'var(--bg-primary)',
-  },
-  '.md-details-editor-actions button.is-primary:hover': {
-    background: 'var(--accent-hover)',
-    borderColor: 'var(--accent-hover)',
-  },
 })
 
 /* ---------------------------------------------------------------- plugin */
 
 export function detailsPlugin(options: DetailsPluginOptions = {}): MarkraPlugin {
-  const extension: Extension = [detailsOpenState, detailsField(options), detailsTheme]
+  const extension: Extension = [
+    detailsOpenState,
+    detailsAtomic,
+    detailsField(options),
+    detailsTheme,
+    EditorView.atomicRanges.of((view) => view.state.field(detailsAtomic)),
+  ]
 
   return defineMarkraPlugin({
     id: 'mdpad.details',
@@ -1339,8 +1910,7 @@ export function detailsPlugin(options: DetailsPluginOptions = {}): MarkraPlugin 
           const afterLine = view.state.sliceDoc(line.from, line.to).trim().length > 0
           const at = afterLine ? line.to : line.from
           const insert = `${afterLine ? '\n\n' : ''}${DETAILS_TEMPLATE}\n\n`
-          // The new section opens its inline editor as soon as it exists.
-          pendingEdit.set(DETAILS_TEMPLATE, 'summary')
+          const blockFrom = at + (afterLine ? 2 : 0)
 
           view.dispatch({
             changes: { from: at, insert, to: at },
@@ -1348,6 +1918,11 @@ export function detailsPlugin(options: DetailsPluginOptions = {}): MarkraPlugin 
             selection: { anchor: at + insert.length },
             userEvent: 'input',
           })
+
+          // Expanding is a second, position-only transaction: the new section
+          // is known to exist by then, and its title input can take focus.
+          pendingSummaryEdit = DETAILS_TEMPLATE
+          view.dispatch({ effects: setDetailsOpen.of({ from: blockFrom, open: true }) })
           return true
         },
       },

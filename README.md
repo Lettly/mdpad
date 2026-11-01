@@ -63,11 +63,13 @@ and the GitHub-flavoured blocks mdpad adds:
 | Divider | `---` |
 
 A collapsible section is one block: the summary and the content render as Markdown — nested
-sections, callouts, tables, code and raw HTML included — and the section collapses as it does on
-GitHub. Hover it and press **Edit**, or double-click the summary or the content, to edit both parts
-in place: `⌘/Ctrl+Enter` saves, `Esc` cancels, and clicking elsewhere saves the draft. **Open by
-default** writes the `open` attribute, and the other attributes on `<details>` are kept. Other raw
-HTML renders as content; click it to reveal the source in place.
+sections, callouts, tables, code and raw HTML included — and the section folds as it does on
+GitHub. The body is ordinary editor content: click into it and type, with the same live preview as
+the rest of the document. Click the title to rename it; the chevron folds the section. There is no
+dialog: `Enter` in the title moves into the body, `Esc` cancels the rename, and clicking away keeps
+it. The **Open by default** checkbox in the title editor writes the `open` attribute, and the other
+attributes on `<details>` are kept. Other raw HTML renders as content; click it to reveal the
+source in place.
 
 ## Development
 
@@ -147,9 +149,10 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 - Writes go through the contents API, which caps out at 1 MB per file.
 - The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
   you can push to. A fine-grained personal access token is the narrower option when that matters.
-- A `<details>` block is one rendered block: summary and content are Markdown, edited in place
-  rather than in a dialog, and written back as `<details>` with its attributes intact. Nested
-  sections render inside it, and a section without a `<summary>` shows GitHub's default label.
+- A `<details>` block is one block: the wrapper tags are hidden, the body stays Markdown you edit
+  directly, and the summary is a row you rename in place. Nested sections render inside it, and a
+  section without a `<summary>` shows GitHub's default label. A non-standard layout — trailing text
+  after the close tag, for example — falls back to a rendered block with a double-click editor.
   Other raw HTML is rendered as content — a centred header is centred — and clicking it reveals the
   source.
 - The rich editor edits the Markdown source directly, so text round-trips as written: bullets stay

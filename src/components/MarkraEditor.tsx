@@ -203,7 +203,7 @@ export default function MarkraEditor({
               paragraphSpacingPx={8}
               plugins={plugins}
               resolveImageSrc={resolveImageSrc}
-              rawHtmlSkip={(source) => /^<details\b/i.test(source.trim())}
+              rawHtmlSkip={(source) => /^<\/?details\b/i.test(source.trim())}
               showCodeBlockLineNumbers={false}
               tableColumnWidthMode="auto"
             />
