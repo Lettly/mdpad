@@ -20,10 +20,12 @@ Everything runs in the browser: no server, no backend, no database. The page tal
 
 ## Try it
 
-[`examples/example.md`](examples/example.md) is a tour of what the editor renders — headings,
-lists, a table, a code block, a blockquote. Open it in the app and edit it:
+[`examples/`](examples/README.md) has one file per category of content — text, lists, tables, code,
+math, callouts, collapsible sections, footnotes, raw HTML, quotes, links, images, diagrams and front
+matter — plus a short tour in [`example.md`](examples/example.md). Open any of them in the app and
+edit it:
 
-<https://lettly.github.io/mdpad/#/Lettly/mdpad/blob/main/examples/example.md>
+<https://lettly.github.io/mdpad/#/Lettly/mdpad/blob/main/examples/README.md>
 
 ## Using it
 
@@ -46,7 +48,9 @@ you get a conflict error; reload and re-apply.
 
 ## Blocks
 
-There is no toolbar: the surface is Markra's. Typing `/` at the end of a line opens the block menu,
+There is no toolbar: the surface is Markra's. Select text and the formatting menu appears above it
+(bold, italic, strikethrough, code, highlight, clear formatting, quote, lists, block type, link,
+copy). Typing `/` at the end of a line opens the block menu,
 which lists Markra's own commands (headings, lists, task list, quote, callout, table, code block)
 and the GitHub-flavoured blocks mdpad adds:
 
