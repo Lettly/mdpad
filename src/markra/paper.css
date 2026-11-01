@@ -1,0 +1,4705 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "@fontsource-variable/noto-sans/wght.css";
+@source "./chrome";
+@source "../";
+@import "katex/dist/katex.css";
+
+@keyframes markra-history-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes markra-ai-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes markra-ai-float-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes markra-ai-command-open {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.012);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes markra-ai-command-close {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes markra-ai-thinking-breathe {
+  0% {
+    opacity: 0.52;
+  }
+
+  50% {
+    opacity: 0.82;
+  }
+
+  100% {
+    opacity: 0.52;
+  }
+}
+
+@keyframes markra-ai-inline-shimmer {
+  0% {
+    opacity: 0;
+    transform: translateX(-80%) skewX(-10deg);
+  }
+
+  22% {
+    opacity: 0.28;
+  }
+
+  54% {
+    opacity: 0.62;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(420%) skewX(-10deg);
+  }
+}
+
+@property --markra-ai-agent-border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes markra-ai-agent-border-run {
+  to {
+    --markra-ai-agent-border-angle: 360deg;
+  }
+}
+
+@keyframes markra-ai-preview-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media screen {
+  .markdown-export-document {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .markdown-export-document,
+  .markdown-export-document * {
+    visibility: visible !important;
+  }
+
+  .markdown-export-document {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .markdown-export-paper {
+    max-width: none !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #111111 !important;
+  }
+}
+
+@layer base {
+  .markra-root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #fafafa;
+    --bg-chrome: color-mix(in oklab, var(--bg-secondary) 82%, var(--bg-primary));
+    --bg-code: #f8f8f8;
+    --bg-hover: #f5f5f5;
+    --bg-active: #eeeeee;
+
+    --text-primary: #555555;
+    --text-heading: #333333;
+    --text-secondary: #999999;
+    --text-md-char: #c7c5c5;
+
+    --border-default: #eeeeee;
+    --border-strong: #dddddd;
+    --accent: #1a1c1e;
+    --accent-soft: rgba(26, 28, 30, 0.1);
+    --accent-hover: #0f1115;
+    --danger: #b42318;
+    --link-color: #2f56c6;
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: color-mix(in srgb, var(--text-secondary) 44%, transparent);
+    --scrollbar-thumb-hover: color-mix(in srgb, var(--text-secondary) 64%, transparent);
+    --scrollbar-thumb-active: color-mix(in srgb, var(--accent) 48%, transparent);
+
+    --ai-command-shadow: 0 18px 52px rgba(0, 0, 0, 0.12);
+    --ai-command-expanded-shadow: 0 20px 64px rgba(0, 0, 0, 0.16);
+    --ai-command-expanded-border: color-mix(in srgb, var(--accent) 14%, var(--border-strong));
+    --ai-command-panel-shadow: 0 18px 52px rgba(0, 0, 0, 0.13);
+    --ai-command-popover-shadow: 0 18px 48px rgba(0, 0, 0, 0.14);
+    --ai-preview-action-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+    --ai-preview-action-quiet-shadow:
+      0 10px 26px rgba(0, 0, 0, 0.13),
+      0 1px 2px rgba(0, 0, 0, 0.08);
+
+    --ai-ghost: #c0c0c0;
+    --ai-border: #dddddd;
+
+    /* SC includes full-width curly quotes, so Latin text must resolve before the CJK fallback. */
+    --font-ui: "Noto Sans Variable", "Noto Sans SC Variable", "Noto Sans SC", "Noto Sans CJK SC", sans-serif;
+
+    font-family: var(--font-ui);
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    color-scheme: light;
+    font-kerning: normal;
+    font-optical-sizing: auto;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .markra-root:lang(zh) {
+    /* Chinese UI and its default editor retain their full-width punctuation. */
+    --font-ui: "Noto Sans SC Variable", "Noto Sans SC", "Noto Sans CJK SC", sans-serif;
+  }
+
+  .markra-root[data-theme="dark"], .markra-root[data-theme="github-dark"], .markra-root[data-theme="night"], .markra-root[data-theme="one-dark"], .markra-root[data-theme="one-dark-pro"], .markra-root[data-theme="solarized-dark"], .markra-root[data-theme="nord"], .markra-root[data-theme="catppuccin-mocha"] {
+    --bg-primary: #1e1e1e;
+    --bg-secondary: #252526;
+    --bg-code: #1e1e1e;
+    --bg-hover: #2a2d2e;
+    --bg-active: #37373d;
+
+    --text-primary: #d4d4d4;
+    --text-heading: #e0e0e0;
+    --text-secondary: #858585;
+    --text-md-char: #555555;
+
+    --border-default: #333333;
+    --border-strong: #444444;
+    --accent: #f4f4f5;
+    --accent-soft: rgba(244, 244, 245, 0.14);
+    --accent-hover: #fafafa;
+    --danger: #ff8a80;
+    --link-color: #b7c5ff;
+
+    --ai-command-shadow:
+      0 24px 64px rgba(0, 0, 0, 0.64),
+      0 0 0 1px rgba(255, 255, 255, 0.035),
+      0 0 32px color-mix(in srgb, var(--accent) 7%, transparent);
+    --ai-command-expanded-shadow:
+      0 28px 76px rgba(0, 0, 0, 0.68),
+      0 0 0 1px rgba(255, 255, 255, 0.045),
+      0 0 40px color-mix(in srgb, var(--accent) 9%, transparent);
+    --ai-command-expanded-border: color-mix(in srgb, var(--accent) 10%, var(--border-strong));
+    --ai-command-panel-shadow:
+      0 24px 68px rgba(0, 0, 0, 0.62),
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 0 34px color-mix(in srgb, var(--accent) 7%, transparent);
+    --ai-command-popover-shadow:
+      0 22px 58px rgba(0, 0, 0, 0.66),
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 0 28px color-mix(in srgb, var(--accent) 7%, transparent);
+    --ai-preview-action-shadow:
+      0 16px 38px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(255, 255, 255, 0.035);
+    --ai-preview-action-quiet-shadow:
+      0 18px 44px rgba(0, 0, 0, 0.78),
+      0 0 0 1px rgba(255, 255, 255, 0.045),
+      0 0 24px color-mix(in srgb, var(--accent) 6%, transparent);
+
+    --ai-ghost: #555555;
+    --ai-border: #444444;
+
+    color-scheme: dark;
+  }
+
+  .markra-root[data-theme="github"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f6f8fa;
+    --bg-code: #f6f8fa;
+    --bg-hover: rgba(129, 139, 152, 0.1);
+    --bg-active: #e6eaef;
+
+    --text-primary: #1f2328;
+    --text-heading: #1f2328;
+    --text-secondary: #59636e;
+    --text-md-char: #818b98;
+
+    --border-default: #d1d9e0;
+    --border-strong: #d1d9e0;
+    --accent: #0969da;
+    --accent-soft: rgba(9, 105, 218, 0.12);
+    --accent-hover: #0550ae;
+    --link-color: #0550ae;
+  }
+
+  .markra-root[data-theme="github-dark"] {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-code: #161b22;
+    --bg-hover: rgba(177, 186, 196, 0.12);
+    --bg-active: #21262d;
+
+    --text-primary: #e6edf3;
+    --text-heading: #f0f6fc;
+    --text-secondary: #7d8590;
+    --text-md-char: #6e7681;
+
+    --border-default: #30363d;
+    --border-strong: #484f58;
+    --accent: #2f81f7;
+    --accent-soft: rgba(47, 129, 247, 0.16);
+    --accent-hover: #58a6ff;
+    --link-color: #58a6ff;
+  }
+
+  .markra-root[data-theme="one-dark"] {
+    --bg-primary: #282c34;
+    --bg-secondary: #21252b;
+    --bg-code: #21252b;
+    --bg-hover: rgba(171, 178, 191, 0.1);
+    --bg-active: #2c313a;
+
+    --text-primary: #abb2bf;
+    --text-heading: #e6edf3;
+    --text-secondary: #8f96a3;
+    --text-md-char: #4b5263;
+
+    --border-default: #3b4048;
+    --border-strong: #4b5263;
+    --accent: #61afef;
+    --accent-soft: rgba(97, 175, 239, 0.15);
+    --accent-hover: #56b6c2;
+    --link-color: #61afef;
+  }
+
+  .markra-root[data-theme="one-light"] {
+    --bg-primary: #fafafa;
+    --bg-secondary: #f0f0f0;
+    --bg-code: #f0f0f0;
+    --bg-hover: rgba(160, 161, 167, 0.12);
+    --bg-active: #e5e5e6;
+
+    --text-primary: #383a42;
+    --text-heading: #202227;
+    --text-secondary: #a0a1a7;
+    --text-md-char: #b6b8bf;
+
+    --border-default: #d7dae0;
+    --border-strong: #c3c5cb;
+    --accent: #4078f2;
+    --accent-soft: rgba(64, 120, 242, 0.12);
+    --accent-hover: #0184bc;
+    --link-color: #4078f2;
+  }
+
+  .markra-root[data-theme="one-dark-pro"] {
+    --bg-primary: #282c34;
+    --bg-secondary: #21252b;
+    --bg-code: #21252b;
+    --bg-hover: rgba(171, 178, 191, 0.1);
+    --bg-active: #2c313a;
+
+    --text-primary: #abb2bf;
+    --text-heading: #e6edf3;
+    --text-secondary: #8f96a3;
+    --text-md-char: #5c6370;
+
+    --border-default: #3e4451;
+    --border-strong: #4b5263;
+    --accent: #61afef;
+    --accent-soft: rgba(97, 175, 239, 0.16);
+    --accent-hover: #56b6c2;
+    --link-color: #61afef;
+  }
+
+  .markra-root[data-theme="gothic"] {
+    --bg-primary: oklch(96% 0.012 77);
+    --bg-secondary: oklch(92% 0.018 77);
+    --bg-code: oklch(90% 0.018 78);
+    --bg-hover: oklch(91% 0.02 77);
+    --bg-active: oklch(87% 0.024 77);
+
+    --text-primary: oklch(30% 0.016 70);
+    --text-heading: oklch(21% 0.016 70);
+    --text-secondary: oklch(48% 0.024 70);
+    --text-md-char: oklch(68% 0.025 74);
+
+    --border-default: oklch(84% 0.024 74);
+    --border-strong: oklch(73% 0.032 74);
+    --accent: oklch(43% 0.13 31);
+    --accent-soft: oklch(43% 0.13 31 / 0.12);
+    --accent-hover: oklch(36% 0.14 31);
+    --link-color: oklch(36% 0.14 31);
+  }
+
+  .markra-root[data-theme="newsprint"] {
+    --bg-primary: oklch(96% 0.018 88);
+    --bg-secondary: oklch(91% 0.022 86);
+    --bg-code: oklch(88% 0.02 86);
+    --bg-hover: oklch(90% 0.024 86);
+    --bg-active: oklch(85% 0.026 84);
+
+    --text-primary: oklch(28% 0.012 75);
+    --text-heading: oklch(18% 0.012 75);
+    --text-secondary: oklch(45% 0.018 75);
+    --text-md-char: oklch(65% 0.024 78);
+
+    --border-default: oklch(80% 0.025 78);
+    --border-strong: oklch(68% 0.03 78);
+    --accent: oklch(42% 0.12 24);
+    --accent-soft: oklch(42% 0.12 24 / 0.12);
+    --accent-hover: oklch(34% 0.13 24);
+    --link-color: oklch(34% 0.13 24);
+  }
+
+  .markra-root[data-theme="pixyll"] {
+    --bg-primary: oklch(98% 0.012 94);
+    --bg-secondary: oklch(95% 0.018 94);
+    --bg-code: oklch(94.5% 0.017 94);
+    --bg-hover: oklch(93.5% 0.019 94);
+    --bg-active: oklch(90% 0.021 94);
+
+    --text-primary: oklch(33% 0.017 254);
+    --text-heading: oklch(24% 0.02 254);
+    --text-secondary: oklch(51% 0.026 254);
+    --text-md-char: oklch(70% 0.022 94);
+
+    --border-default: oklch(88% 0.018 94);
+    --border-strong: oklch(78% 0.026 94);
+    --accent: oklch(46% 0.16 15);
+    --accent-soft: oklch(46% 0.16 15 / 0.12);
+    --accent-hover: oklch(38% 0.17 15);
+    --link-color: oklch(38% 0.17 15);
+  }
+
+  .markra-root[data-theme="whitey"] {
+    --bg-primary: oklch(99.3% 0.004 106);
+    --bg-secondary: oklch(97.5% 0.006 106);
+    --bg-code: oklch(97% 0.006 106);
+    --bg-hover: oklch(96% 0.008 106);
+    --bg-active: oklch(93.5% 0.01 106);
+
+    --text-primary: oklch(31% 0.011 106);
+    --text-heading: oklch(20% 0.01 106);
+    --text-secondary: oklch(54% 0.014 106);
+    --text-md-char: oklch(75% 0.01 106);
+
+    --border-default: oklch(91% 0.008 106);
+    --border-strong: oklch(83% 0.012 106);
+    --accent: oklch(48% 0.13 215);
+    --accent-soft: oklch(48% 0.13 215 / 0.12);
+    --accent-hover: oklch(41% 0.14 215);
+    --link-color: oklch(41% 0.14 215);
+  }
+
+  .markra-root[data-theme="sepia"] {
+    --bg-primary: #fbf0d9;
+    --bg-secondary: #f3e2bd;
+    --bg-code: #f5e6c8;
+    --bg-hover: rgba(102, 81, 50, 0.11);
+    --bg-active: #ead6aa;
+
+    --text-primary: #4b3828;
+    --text-heading: #2f241b;
+    --text-secondary: #7a654d;
+    --text-md-char: #b49a76;
+
+    --border-default: #dfc596;
+    --border-strong: #c8a974;
+    --accent: #8f4e22;
+    --accent-soft: rgba(143, 78, 34, 0.13);
+    --accent-hover: #6f3d18;
+    --link-color: #6f3d18;
+  }
+
+  .markra-root[data-theme="solarized-light"] {
+    --bg-primary: #fdf6e3;
+    --bg-secondary: #eee8d5;
+    --bg-code: #eee8d5;
+    --bg-hover: rgba(101, 123, 131, 0.12);
+    --bg-active: #e1d8bd;
+
+    --text-primary: #586e75;
+    --text-heading: #073642;
+    --text-secondary: #839496;
+    --text-md-char: #93a1a1;
+
+    --border-default: #d8cfb2;
+    --border-strong: #c8bd9c;
+    --accent: #268bd2;
+    --accent-soft: rgba(38, 139, 210, 0.14);
+    --accent-hover: #006cae;
+    --link-color: #006cae;
+  }
+
+  .markra-root[data-theme="solarized-dark"] {
+    --bg-primary: #002b36;
+    --bg-secondary: #073642;
+    --bg-code: #073642;
+    --bg-hover: rgba(131, 148, 150, 0.12);
+    --bg-active: #104554;
+
+    --text-primary: #93a1a1;
+    --text-heading: #eee8d5;
+    --text-secondary: #839496;
+    --text-md-char: #586e75;
+
+    --border-default: #164b5a;
+    --border-strong: #2a5d6a;
+    --accent: #268bd2;
+    --accent-soft: rgba(38, 139, 210, 0.18);
+    --accent-hover: #2aa198;
+    --link-color: #2aa198;
+  }
+
+  .markra-root[data-theme="nord"] {
+    --bg-primary: #2e3440;
+    --bg-secondary: #3b4252;
+    --bg-code: #242933;
+    --bg-hover: rgba(216, 222, 233, 0.08);
+    --bg-active: #434c5e;
+
+    --text-primary: #d8dee9;
+    --text-heading: #eceff4;
+    --text-secondary: #a7b1c3;
+    --text-md-char: #6b768a;
+
+    --border-default: #4c566a;
+    --border-strong: #5e6b83;
+    --accent: #88c0d0;
+    --accent-soft: rgba(136, 192, 208, 0.16);
+    --accent-hover: #8fbcbb;
+    --link-color: #8fbcbb;
+  }
+
+  .markra-root[data-theme="catppuccin-latte"] {
+    --bg-primary: #eff1f5;
+    --bg-secondary: #e6e9ef;
+    --bg-code: #e6e9ef;
+    --bg-hover: rgba(124, 127, 147, 0.12);
+    --bg-active: #ccd0da;
+
+    --text-primary: #4c4f69;
+    --text-heading: #1e1e2e;
+    --text-secondary: #6c6f85;
+    --text-md-char: #9ca0b0;
+
+    --border-default: #ccd0da;
+    --border-strong: #bcc0cc;
+    --accent: #1e66f5;
+    --accent-soft: rgba(30, 102, 245, 0.13);
+    --accent-hover: #04a5e5;
+    --link-color: #04a5e5;
+  }
+
+  .markra-root[data-theme="catppuccin-mocha"] {
+    --bg-primary: #1e1e2e;
+    --bg-secondary: #313244;
+    --bg-code: #181825;
+    --bg-hover: rgba(205, 214, 244, 0.08);
+    --bg-active: #45475a;
+
+    --text-primary: #cdd6f4;
+    --text-heading: #f5e0dc;
+    --text-secondary: #a6adc8;
+    --text-md-char: #6c7086;
+
+    --border-default: #45475a;
+    --border-strong: #585b70;
+    --accent: #89b4fa;
+    --accent-soft: rgba(137, 180, 250, 0.16);
+    --accent-hover: #94e2d5;
+    --link-color: #94e2d5;
+  }
+
+  .markra-root[data-theme="academic"] {
+    --bg-primary: #fbfaf7;
+    --bg-secondary: #f1efe8;
+    --bg-code: #eeeae0;
+    --bg-hover: rgba(85, 75, 58, 0.1);
+    --bg-active: #e5dfd1;
+
+    --text-primary: #302a22;
+    --text-heading: #191612;
+    --text-secondary: #6b6254;
+    --text-md-char: #b1a799;
+
+    --border-default: #ded6c8;
+    --border-strong: #c9bdab;
+    --accent: #315f8c;
+    --accent-soft: rgba(49, 95, 140, 0.13);
+    --accent-hover: #244866;
+    --link-color: #244866;
+  }
+
+  .markra-root[data-theme="minimal"] {
+    --bg-primary: #fdfdfc;
+    --bg-secondary: #f7f7f5;
+    --bg-code: #f3f3f1;
+    --bg-hover: rgba(82, 82, 74, 0.08);
+    --bg-active: #ededeb;
+
+    --text-primary: #2f302d;
+    --text-heading: #171815;
+    --text-secondary: #777972;
+    --text-md-char: #c8cac2;
+
+    --border-default: #e7e7e2;
+    --border-strong: #d5d6cf;
+    --accent: #4b6f77;
+    --accent-soft: rgba(75, 111, 119, 0.12);
+    --accent-hover: #36565f;
+    --link-color: #36565f;
+  }
+
+  .markra-root * {
+    @apply box-border;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-track-piece,
+  *::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-height: 48px;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-color: var(--scrollbar-thumb);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background-color: var(--scrollbar-thumb-active);
+  }
+
+  *::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .markra-root button {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .document-tabs-scroll {
+    scrollbar-color: color-mix(in srgb, var(--text-secondary) 38%, transparent) transparent;
+    scrollbar-width: thin;
+  }
+
+  .document-tabs-scroll::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .document-tabs-scroll::-webkit-scrollbar-thumb {
+    min-width: 48px;
+    min-height: 0;
+    border: 0;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--text-secondary) 38%, transparent);
+  }
+
+  .document-tabs-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--text-secondary) 54%, transparent);
+  }
+
+  .document-tabs-scroll::-webkit-scrollbar-thumb:active {
+    background-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  }
+
+  .paper-scroll {
+    height: 100%;
+  }
+
+  /* Keep this contextual height in CSS: h-full plus the fixed top offset would overflow into the status row. */
+  .editor-content-slot .paper-scroll {
+    height: calc(100% - 2.5rem);
+    margin-top: 2.5rem;
+  }
+
+  .editor-content-slot .markdown-paper,
+  .editor-content-slot .markdown-source-paper {
+    min-height: calc(100vh - 2.5rem);
+    padding-top: 1rem;
+  }
+
+  @media (max-width: 900px) {
+    .editor-content-slot .markdown-paper,
+    .editor-content-slot .markdown-source-paper {
+      padding-top: 0;
+    }
+  }
+
+  .markra-slash-menu {
+    @apply fixed z-[60] w-60 rounded-lg border border-(--border-default) bg-(--bg-primary) p-1 text-[13px] leading-5 text-(--text-primary);
+    box-shadow: var(--ai-command-popover-shadow);
+  }
+
+  .markra-slash-menu-option {
+    @apply flex h-8 w-full cursor-pointer items-center rounded-md border-0 bg-transparent px-2.5 text-left text-[13px] leading-5 font-[560] tracking-normal text-(--text-primary) outline-none transition-[background-color,color] duration-150 ease-out;
+  }
+
+  .markra-slash-menu-option:hover,
+  .markra-slash-menu-option[aria-selected="true"] {
+    @apply bg-(--bg-active) text-(--text-heading);
+  }
+
+  .markra-slash-menu-empty {
+    @apply px-2.5 py-2 text-[12px] leading-5 font-[560] text-(--text-secondary);
+  }
+
+  .markra-plugin-toolbar {
+    @apply fixed top-12 right-4 z-[55] flex items-center gap-1 rounded-lg border border-(--border-default) bg-(--bg-primary) p-1 shadow-(--ai-command-popover-shadow);
+  }
+
+  .markra-plugin-selection-toolbar,
+  .markra-plugin-context-menu {
+    @apply fixed z-[65] flex min-w-40 flex-col gap-0.5 rounded-lg border border-(--border-default) bg-(--bg-primary) p-1 shadow-(--ai-command-popover-shadow);
+  }
+
+  .markra-plugin-toolbar button,
+  .markra-plugin-selection-toolbar button,
+  .markra-plugin-context-menu button {
+    @apply min-h-8 rounded-md border-0 bg-transparent px-2.5 text-left text-[13px] font-[560] text-(--text-primary);
+  }
+
+  .markra-plugin-toolbar button:hover,
+  .markra-plugin-selection-toolbar button:hover,
+  .markra-plugin-context-menu button:hover {
+    @apply bg-(--bg-active) text-(--text-heading);
+  }
+
+  .document-search-icon-button {
+    @apply flex size-8 shrink-0 items-center justify-center rounded-sm border border-transparent bg-transparent text-(--text-secondary) outline-none transition-[background-color,color,border-color] duration-150 ease-out;
+  }
+
+  .document-search-icon-button:hover,
+  .document-search-icon-button:focus-visible,
+  .document-search-icon-button[aria-pressed="true"] {
+    @apply border-(--border-default) bg-(--bg-active) text-(--text-heading);
+  }
+
+  .document-search-icon-button:disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+
+  .document-search-text-button {
+    @apply h-8 shrink-0 rounded-sm border border-(--border-default) bg-(--bg-primary) px-2.5 text-[12px] leading-5 font-[620] text-(--text-heading) outline-none transition-[background-color,border-color,color] duration-150 ease-out;
+  }
+
+  .document-search-text-button:hover,
+  .document-search-text-button:focus-visible {
+    @apply border-(--border-strong) bg-(--bg-active);
+  }
+
+  .document-search-text-button:disabled {
+    @apply cursor-not-allowed opacity-45;
+  }
+
+  .markdown-paper,
+  .markdown-source-paper {
+    --editor-markdown-syntax-color: color-mix(in srgb, var(--text-md-char) 72%, var(--editor-paper-bg, var(--bg-primary)));
+    --editor-text-cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http://www.w3.org/2000/svg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cpath%20d%3D%27M12%204v16M8.5%204h7M8.5%2020h7%27%20fill%3D%27none%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%274%27%20stroke-linecap%3D%27round%27/%3E%3Cpath%20d%3D%27M12%204v16M8.5%204h7M8.5%2020h7%27%20fill%3D%27none%27%20stroke%3D%27%231a1c1e%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3C/svg%3E") 12 12, text;
+  }
+
+  .markdown-source-paper {
+    --source-markdown-syntax-color: var(--editor-markdown-syntax-color);
+  }
+
+  /* Revealed Markdown markers are editable content. Keep them at the
+     theme's primary text contrast instead of reusing muted chrome tokens. */
+  .markdown-paper[data-editor-theme="dark"],
+  .markdown-paper[data-editor-theme="github-dark"],
+  .markdown-paper[data-editor-theme="night"],
+  .markdown-paper[data-editor-theme="one-dark"],
+  .markdown-paper[data-editor-theme="one-dark-pro"],
+  .markdown-paper[data-editor-theme="solarized-dark"],
+  .markdown-paper[data-editor-theme="nord"],
+  .markdown-paper[data-editor-theme="catppuccin-mocha"] {
+    --editor-markdown-syntax-color: var(--editor-text-primary);
+  }
+
+  [data-theme="dark"] .markdown-source-paper,
+  [data-theme="github-dark"] .markdown-source-paper,
+  [data-theme="night"] .markdown-source-paper,
+  [data-theme="one-dark"] .markdown-source-paper,
+  [data-theme="one-dark-pro"] .markdown-source-paper,
+  [data-theme="solarized-dark"] .markdown-source-paper,
+  [data-theme="nord"] .markdown-source-paper,
+  [data-theme="catppuccin-mocha"] .markdown-source-paper {
+    --source-markdown-syntax-color: var(--text-primary);
+  }
+
+  [data-theme="dark"] .markdown-paper,
+  [data-theme="github-dark"] .markdown-paper,
+  [data-theme="night"] .markdown-paper,
+  [data-theme="one-dark"] .markdown-paper,
+  [data-theme="one-dark-pro"] .markdown-paper,
+  [data-theme="solarized-dark"] .markdown-paper,
+  [data-theme="nord"] .markdown-paper,
+  [data-theme="catppuccin-mocha"] .markdown-paper,
+  .markdown-paper[data-editor-theme="dark"],
+  .markdown-paper[data-editor-theme="github-dark"],
+  .markdown-paper[data-editor-theme="night"],
+  .markdown-paper[data-editor-theme="one-dark"],
+  .markdown-paper[data-editor-theme="one-dark-pro"],
+  .markdown-paper[data-editor-theme="solarized-dark"],
+  .markdown-paper[data-editor-theme="nord"],
+  .markdown-paper[data-editor-theme="catppuccin-mocha"],
+  [data-theme="dark"] .markdown-source-paper,
+  [data-theme="github-dark"] .markdown-source-paper,
+  [data-theme="night"] .markdown-source-paper,
+  [data-theme="one-dark"] .markdown-source-paper,
+  [data-theme="one-dark-pro"] .markdown-source-paper,
+  [data-theme="solarized-dark"] .markdown-source-paper,
+  [data-theme="nord"] .markdown-source-paper,
+  [data-theme="catppuccin-mocha"] .markdown-source-paper {
+    --editor-text-cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http://www.w3.org/2000/svg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cpath%20d%3D%27M12%204v16M8.5%204h7M8.5%2020h7%27%20fill%3D%27none%27%20stroke%3D%27%23000000%27%20stroke-width%3D%274%27%20stroke-linecap%3D%27round%27/%3E%3Cpath%20d%3D%27M12%204v16M8.5%204h7M8.5%2020h7%27%20fill%3D%27none%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27/%3E%3C/svg%3E") 12 12, text;
+  }
+
+  .markdown-paper .cm-editor {
+    @apply min-h-[calc(100vh-176px)] outline-none;
+    cursor: var(--editor-text-cursor);
+    font-family: var(--editor-font-family);
+  }
+
+  .markdown-paper .cm-content {
+    @apply wrap-break-word whitespace-pre-wrap;
+    color: var(--editor-text-primary);
+    font-family: inherit;
+  }
+
+  .markdown-paper .cm-markra-syntax-character {
+    color: var(--editor-markdown-syntax-color) !important;
+  }
+
+  .markdown-source-paper .cm-markra-syntax-character {
+    color: var(--source-markdown-syntax-color) !important;
+  }
+
+  .markdown-source-paper .cm-markra-source-metadata {
+    color: var(--text-primary) !important;
+  }
+
+  .markdown-paper .cm-cursor,
+  .markdown-paper .cm-dropCursor {
+    border-left-color: var(--editor-caret-color) !important;
+  }
+
+  .markdown-paper .cm-vimMode .cm-fat-cursor,
+  .markdown-source-paper .cm-vimMode .cm-fat-cursor {
+    background: var(--accent) !important;
+    color: var(--bg-primary) !important;
+  }
+
+  .markdown-paper .cm-editor:not(.cm-focused) .cm-vimMode .cm-fat-cursor,
+  .markdown-source-paper .cm-editor:not(.cm-focused) .cm-vimMode .cm-fat-cursor {
+    display: none !important;
+  }
+
+  .markdown-paper .cm-vim-panel {
+    border-top: 1px solid var(--editor-border);
+    background: var(--editor-bg-secondary);
+    color: var(--editor-text-secondary);
+  }
+
+  .markdown-source-paper .cm-vim-panel {
+    border-top: 1px solid var(--border-default);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+  }
+
+  .markdown-paper .cm-vim-panel,
+  .markdown-source-paper .cm-vim-panel {
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    padding: 2px 10px;
+    font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+    font-size: 11px;
+    line-height: 20px;
+  }
+
+  .markdown-paper .cm-vim-panel > span:first-child,
+  .markdown-source-paper .cm-vim-panel > span:first-child {
+    color: var(--accent);
+    font-weight: 650;
+    letter-spacing: 0.04em;
+  }
+
+  .markdown-paper .markra-vim-hint,
+  .markdown-source-paper .markra-vim-hint {
+    color: var(--editor-text-secondary, var(--text-secondary));
+    opacity: 0.82;
+    white-space: nowrap;
+  }
+
+  .markdown-paper .markra-vim-feedback,
+  .markdown-source-paper .markra-vim-feedback {
+    color: var(--editor-text-primary, var(--text-primary));
+    white-space: nowrap;
+  }
+
+  /* CodeMirror uses transparent image nodes to stabilize widget cursors. They
+     are editor chrome, so Markdown media spacing must never leak onto them. */
+  .markdown-paper .cm-widgetBuffer {
+    display: inline !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h1,
+  .markdown-paper .cm-line.cm-markra-h2,
+  .markdown-paper .cm-line.cm-markra-h3,
+  .markdown-paper .cm-line.cm-markra-h4,
+  .markdown-paper .cm-line.cm-markra-h5,
+  .markdown-paper .cm-line.cm-markra-h6 {
+    --markra-heading-toolbar-inline-start: -78px;
+    font-family: var(--editor-heading-font-family) !important;
+    letter-spacing: var(--editor-heading-letter-spacing) !important;
+    text-wrap: balance;
+  }
+
+  /* Heading controls follow typography even when the final heading has no
+     foldable content and therefore no fold-toggle decoration. */
+  .markdown-paper .cm-line.cm-markra-h1 {
+    --markra-heading-control-center-offset: 0px;
+    color: var(--editor-h1-color) !important;
+    font-size: var(--editor-h1-font-size) !important;
+    font-weight: var(--editor-h1-font-weight) !important;
+    line-height: var(--editor-h1-line-height) !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h2 {
+    --markra-heading-control-center-offset: 0px;
+    color: var(--editor-h2-color) !important;
+    font-size: var(--editor-h2-font-size) !important;
+    font-weight: var(--editor-h2-font-weight) !important;
+    line-height: var(--editor-h2-line-height) !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h3 {
+    --markra-heading-control-center-offset: 0px;
+    color: var(--editor-h3-color) !important;
+    font-size: var(--editor-h3-font-size) !important;
+    font-weight: var(--editor-h3-font-weight) !important;
+    line-height: var(--editor-h3-line-height) !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h4 {
+    --markra-heading-control-center-offset: 0px;
+    color: var(--editor-h4-color) !important;
+    font-size: var(--editor-h4-font-size) !important;
+    font-weight: var(--editor-h4-font-weight) !important;
+    line-height: var(--editor-h4-line-height) !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h5,
+  .markdown-paper .cm-line.cm-markra-h6 {
+    --markra-heading-control-center-offset: 0px;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h5 {
+    color: var(--editor-h5-color) !important;
+    font-size: var(--editor-h5-font-size) !important;
+    font-weight: var(--editor-h5-font-weight) !important;
+    line-height: var(--editor-h5-line-height) !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h6 {
+    color: var(--editor-h6-color) !important;
+    font-size: var(--editor-h6-font-size) !important;
+    font-weight: var(--editor-h6-font-weight) !important;
+    line-height: var(--editor-h6-line-height) !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h1 > span:not(.cm-markra-link):not(.cm-markra-link-source-label):not(.cm-markra-strikethrough),
+  .markdown-paper .cm-line.cm-markra-h2 > span:not(.cm-markra-link):not(.cm-markra-link-source-label):not(.cm-markra-strikethrough),
+  .markdown-paper .cm-line.cm-markra-h3 > span:not(.cm-markra-link):not(.cm-markra-link-source-label):not(.cm-markra-strikethrough),
+  .markdown-paper .cm-line.cm-markra-h4 > span:not(.cm-markra-link):not(.cm-markra-link-source-label):not(.cm-markra-strikethrough),
+  .markdown-paper .cm-line.cm-markra-h5 > span:not(.cm-markra-link):not(.cm-markra-link-source-label):not(.cm-markra-strikethrough),
+  .markdown-paper .cm-line.cm-markra-h6 > span:not(.cm-markra-link):not(.cm-markra-link-source-label):not(.cm-markra-strikethrough) {
+    text-decoration: none !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-h1 > span,
+  .markdown-paper .cm-line.cm-markra-h2 > span,
+  .markdown-paper .cm-line.cm-markra-h3 > span,
+  .markdown-paper .cm-line.cm-markra-h4 > span,
+  .markdown-paper .cm-line.cm-markra-h5 > span,
+  .markdown-paper .cm-line.cm-markra-h6 > span {
+    font-family: inherit !important;
+    font-weight: inherit !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-paragraph {
+    color: var(--editor-text-primary);
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item {
+    position: relative;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-markra-list-source="hidden"] {
+    padding-inline-start: 1.55em !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-markra-list-source="hidden"]::before {
+    position: absolute;
+    inset-inline-start: 0;
+    width: 1.2em;
+    color: var(--editor-text-secondary);
+    content: attr(data-list-marker);
+    text-align: center;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-markra-list-marker-selected="true"]::before {
+    background: color-mix(in srgb, var(--editor-caret-color, var(--accent)) 20%, transparent);
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-kind="task"][data-markra-list-source="hidden"] {
+    padding-inline-start: 0 !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-kind="task"][data-markra-list-source="hidden"]::before {
+    content: none;
+  }
+
+  .markdown-paper .cm-markra-strong {
+    color: inherit;
+    font-weight: 700;
+  }
+
+  .markdown-paper .cm-markra-emphasis {
+    font-style: italic;
+    /* CJK system fonts often lack italic faces, so live Markdown needs local style synthesis. */
+    font-synthesis: style;
+  }
+
+  .markdown-paper .cm-markra-inline-code {
+    font-family: var(--editor-code-font-family, ui-monospace, SFMono-Regular, Menlo, monospace) !important;
+    background: var(--editor-inline-code-bg) !important;
+    color: var(--editor-inline-code-text) !important;
+  }
+
+  .markdown-paper .cm-markra-link {
+    color: var(--editor-link-color) !important;
+    cursor: var(--editor-text-cursor);
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
+    -webkit-user-drag: none;
+  }
+
+  .markdown-paper .cm-line.cm-markra-blockquote {
+    border-left: 1px solid var(--editor-border-strong) !important;
+    padding-left: 20px !important;
+    color: var(--editor-text-secondary) !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item + .cm-line.cm-markra-list-item {
+    --markra-block-toolbar-block-offset: 4px;
+    padding-block-start: 4px !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-depth="0"] +
+    .cm-line.cm-markra-list-item[data-list-depth="1"] {
+    --markra-block-toolbar-block-offset: 8px;
+    padding-block-start: 8px !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-depth="1"] +
+    .cm-line.cm-markra-list-item[data-list-depth="0"],
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-kind="bullet"] +
+    .cm-line.cm-markra-list-item[data-list-kind="ordered"],
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-kind="ordered"] +
+    .cm-line.cm-markra-list-item[data-list-kind="task"] {
+    --markra-block-toolbar-block-offset: 12px;
+    padding-block-start: 12px !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-markra-list-source="hidden"] {
+    --markra-list-depth-offset: 0em;
+    padding-inline-start: calc(1.4em + var(--markra-list-depth-offset)) !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-depth="1"] {
+    --markra-list-depth-offset: 1.35em;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-depth="2"] {
+    --markra-list-depth-offset: 2.7em;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-depth="3"] {
+    --markra-list-depth-offset: 4.05em;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-markra-list-source="hidden"]::before {
+    inset-inline-start: var(--markra-list-depth-offset);
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-kind="ordered"][data-markra-list-source="hidden"]::before {
+    /* Keep multi-digit markers whole and grow into the gutter, away from editable text. */
+    inset-inline-start: auto;
+    inset-inline-end: calc(100% - var(--markra-list-depth-offset) - 1.2em);
+    width: max-content;
+    min-width: 1.2em;
+    white-space: nowrap;
+    text-align: end;
+  }
+
+  .markdown-paper .cm-line.cm-markra-list-item[data-list-kind="task"][data-markra-list-source="hidden"] {
+    padding-inline-start: calc(1.4em + var(--markra-list-depth-offset)) !important;
+  }
+
+  /* The opening fence is folded into this zero-height line. Keep controls
+     over the first code row: vertical height or margins on the hidden line
+     accumulate across blocks and shift WebKit's pointer mapping away from
+     the rendered caret. */
+  .markdown-paper .cm-line.cm-markra-code-header-line {
+    --markra-block-toolbar-block-offset: 12px;
+    position: relative !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin-block: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    line-height: 0 !important;
+  }
+
+  .markdown-paper .cm-markra-code-header-wrap {
+    display: block !important;
+    height: 0 !important;
+  }
+
+  .markdown-paper .cm-markra-code-top-gap {
+    box-sizing: border-box;
+    width: 100% !important;
+    height: 12px !important;
+    margin: 0 !important;
+    border-top: 1px solid var(--editor-border);
+    border-right: 1px solid var(--editor-border);
+    border-left: 1px solid var(--editor-border);
+    border-radius: 4px 4px 0 0;
+    background: var(--editor-code-bg);
+    pointer-events: none;
+  }
+
+  .markdown-paper .cm-markra-code-top-gap[data-code-line-numbers="true"] {
+    background: linear-gradient(
+      90deg,
+      var(--editor-code-line-bg) 0 43px,
+      var(--editor-border) 43px 44px,
+      var(--editor-code-bg) 44px 100%
+    );
+  }
+
+  .markdown-paper .cm-markra-code-header {
+    display: none !important;
+  }
+
+  .markdown-paper .cm-markra-code-header-actions {
+    position: absolute !important;
+    top: 0;
+    right: 8px;
+    z-index: 4;
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(-2px);
+    transition: opacity 150ms ease-out, transform 150ms ease-out;
+  }
+
+  .markdown-paper .cm-line.cm-markra-code-header-line[data-code-block-hovered="true"]
+    .cm-markra-code-header-actions,
+  .markdown-paper .cm-markra-code-header-actions:focus-within {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none;
+  }
+
+  .markdown-paper .cm-markra-code-header-actions .markra-code-language-control {
+    position: relative !important;
+    display: flex !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+  }
+
+  .markdown-paper .cm-markra-code-header-actions .markra-code-language-select {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 24px !important;
+    min-height: 24px !important;
+    min-width: 160px !important;
+    width: 160px !important;
+    padding: 0 28px !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    text-align: center;
+    text-align-last: center;
+  }
+
+  .markdown-paper .cm-markra-code-header-actions .markra-code-language-control::after {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 0;
+    height: 0;
+    border-top: 4px solid currentColor;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+    content: "";
+    pointer-events: none;
+    transform: translateY(-25%);
+  }
+
+  .markdown-paper .cm-markra-code-header-actions .markra-code-copy-button {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-code-content-line {
+    position: relative;
+    box-sizing: border-box;
+    padding-inline: 16px 16px !important;
+    /* WebKit and CodeMirror disagree about pointer coordinates when selected
+       editable lines add vertical padding. Keep every code row geometrically
+       uniform so a click and its rendered caret stay on the same line. */
+    padding-block: 0 !important;
+    text-indent: 0;
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--editor-code-text) !important;
+    /* The variable permits font customization without removing CodeMirror's geometry safeguards. */
+    font-family: var(--editor-code-font-family, Menlo, Consolas, "DejaVu Sans Mono", monospace) !important;
+    font-size: 14.4px !important;
+    line-height: 24px !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-code-content-line[data-code-line-numbers="true"] {
+    /* The inline line-number marker only occupies the first visual row.
+       A hanging indent keeps soft-wrapped continuations out of the gutter. */
+    padding-inline: 59px 16px !important;
+    text-indent: -59px;
+  }
+
+  /* CodeMirror draws selections at z-index -1. Keeping the code surface at
+     -2 leaves selections visible without placing them over tokens or gutters. */
+  .markdown-paper .cm-line.cm-markra-code-content-line::after {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    box-sizing: border-box;
+    border-right: 1px solid var(--editor-border);
+    border-left: 1px solid var(--editor-border);
+    background: var(--editor-code-bg);
+    content: "";
+    pointer-events: none;
+  }
+
+  .markdown-paper .cm-line.cm-markra-code-content-line[data-code-line-numbers="true"]::after {
+    background: linear-gradient(
+      90deg,
+      var(--editor-code-line-bg) 0 43px,
+      var(--editor-border) 43px 44px,
+      var(--editor-code-bg) 44px 100%
+    );
+  }
+
+  /* The backdrop owns the continuous gutter divider. Keep this pseudo-element
+     inside the number column so it cannot cover that divider on text rows. */
+  .markdown-paper .cm-line.cm-markra-code-content-line[data-code-line-number]::before {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    width: 43px !important;
+    min-width: 43px !important;
+    margin-right: 16px !important;
+    padding-right: 12px;
+    border-left: 1px solid var(--editor-border);
+    background: var(--editor-code-line-bg);
+    color: var(--editor-text-secondary) !important;
+    font: inherit;
+  }
+
+  .markdown-paper .cm-line.cm-markra-code-header-line +
+    .cm-line.cm-markra-code-content-line {
+    padding-inline-end: 220px !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-code-closing-line {
+    position: relative !important;
+    box-sizing: border-box;
+    height: 12px !important;
+    min-height: 12px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-right: 1px solid var(--editor-border) !important;
+    border-bottom: 1px solid var(--editor-border) !important;
+    border-left: 1px solid var(--editor-border) !important;
+    border-radius: 0 0 4px 4px !important;
+    background: var(--editor-code-bg) !important;
+    line-height: 12px !important;
+    overflow: visible !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-code-closing-line[data-code-line-numbers="true"] {
+    background: linear-gradient(
+      90deg,
+      var(--editor-code-line-bg) 0 43px,
+      var(--editor-border) 43px 44px,
+      var(--editor-code-bg) 44px 100%
+    ) !important;
+  }
+
+  .markdown-paper .cm-markra-code-exit-wrap {
+    display: inline-block !important;
+    width: 100% !important;
+    height: 12px !important;
+  }
+
+  .markdown-paper .cm-markra-code-exit {
+    display: inline-block !important;
+    width: 100% !important;
+    height: 12px !important;
+    cursor: var(--editor-text-cursor);
+  }
+
+  .markdown-paper .cm-markra-table-wrap {
+    display: block !important;
+    margin: 0 !important;
+    padding: 28px 36px 12px 0 !important;
+    overflow: visible !important;
+    /* The source line uses a zero font size; inherit the body size via a
+       variable so table text still follows the editor preference. */
+    font-size: var(--editor-body-font-size, 16px) !important;
+    line-height: 1.65 !important;
+  }
+
+  .markdown-paper .cm-line:has(> .cm-markra-table-wrap) {
+    /* The source line has zero height, so center block tools inside the
+       reserved 24px table-control row instead of the preceding block. */
+    --markra-block-toolbar-block-offset: 12px;
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+
+  /* HTML tables retain authored widths and their draggable column layout. */
+  .markdown-paper .cm-markra-table-wrap[data-table-from] .cm-markra-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .markdown-paper .cm-markra-table-wrap[data-table-from] .cm-markra-table[data-width-mode="auto"] {
+    table-layout: auto !important;
+  }
+
+  .markdown-paper .cm-markra-table-wrap[data-table-from] .cm-markra-table[data-width-mode="even"] {
+    table-layout: fixed !important;
+  }
+
+  .markdown-paper .cm-markra-table th,
+  .markdown-paper .cm-markra-table td {
+    padding: 8px 12px !important;
+    border: 1px solid var(--editor-border-strong) !important;
+    caret-color: var(--editor-caret-color) !important;
+    outline: none !important;
+  }
+
+  .markdown-paper .cm-markra-table th[contenteditable="true"]:focus,
+  .markdown-paper .cm-markra-table td[contenteditable="true"]:focus {
+    box-shadow: inset 0 0 0 2px var(--editor-caret-color) !important;
+  }
+
+  .markdown-paper .cm-markra-table th {
+    background: var(--editor-bg-secondary) !important;
+    color: var(--editor-text-heading) !important;
+  }
+
+  .markdown-paper .cm-markra-table td {
+    background: var(--editor-paper-bg) !important;
+  }
+
+  .markdown-paper .cm-markra-table tbody tr:nth-child(even) td {
+    background: var(--editor-bg-secondary) !important;
+  }
+
+  .markdown-paper[data-editor-theme="github"] .cm-markra-table-wrap,
+  .markdown-paper[data-editor-theme="github-dark"] .cm-markra-table-wrap {
+    margin: 0 0 16px !important;
+    padding: 28px 0 0 !important;
+  }
+
+  .markdown-paper[data-editor-theme="github"] .cm-markra-table th,
+  .markdown-paper[data-editor-theme="github"] .cm-markra-table td,
+  .markdown-paper[data-editor-theme="github-dark"] .cm-markra-table th,
+  .markdown-paper[data-editor-theme="github-dark"] .cm-markra-table td {
+    padding: 6px 13px !important;
+    border-color: var(--editor-border) !important;
+  }
+
+  .markdown-paper .cm-line:has(> .cm-markra-horizontal-rule) {
+    --markra-block-toolbar-block-offset: 22px;
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+
+  .markdown-paper .cm-markra-horizontal-rule {
+    /* The app draws the rule with the shared hr background; suppress the
+       renderer theme's border so one Markdown block produces one line. */
+    border-top: 0 !important;
+    margin: 16px 0 12px !important;
+  }
+
+  .markdown-paper .cm-markra-task-checkbox {
+    width: 1rem;
+    height: 1rem;
+    margin: 0 0.5em 0 0;
+    accent-color: var(--accent) !important;
+    vertical-align: -0.08em;
+  }
+
+  @media (max-width: 900px) {
+    .markdown-paper .cm-line.cm-markra-h1 {
+      font-size: var(--editor-h1-font-size-compact) !important;
+    }
+
+    .markdown-paper .cm-line.cm-markra-h2 {
+      font-size: var(--editor-h2-font-size-compact) !important;
+    }
+  }
+
+  .markdown-paper .markra-task-list-checkbox {
+    @apply h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-(--border-strong) accent-(--accent);
+    line-height: inherit;
+    margin-top: calc((1lh - 1rem) / 2);
+  }
+
+  .markdown-paper .markra-task-list-checkbox:disabled {
+    @apply cursor-not-allowed opacity-55;
+  }
+
+  .markdown-paper .markra-task-list-content {
+    @apply min-w-0 flex-1;
+  }
+
+  .markdown-paper .markra-task-list-content > p:first-child {
+    @apply mt-0;
+  }
+
+  .markdown-paper .markra-task-list-content > p:last-child {
+    @apply mb-0;
+  }
+
+  .markdown-paper .cm-editor.cm-focused {
+    @apply outline-none;
+  }
+
+  .markdown-paper .markra-block-toolbar {
+    @apply fixed z-50 flex h-6 items-center gap-0 rounded-md border border-transparent bg-transparent p-0 text-(--text-secondary) outline-none transition-[opacity,color,background-color,border-color,box-shadow] duration-150 ease-out;
+    display: flex !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  .markdown-paper .cm-line[data-markra-block-from] {
+    position: relative;
+  }
+
+  .markdown-paper .cm-markra-block-toolbar {
+    /* Keep block tools anchored to the shared line gutter. List and callout
+       padding must move content without pulling controls into the block. */
+    position: absolute !important;
+    inset-inline-start: var(--markra-block-toolbar-inline-start, -54px);
+    top: calc(0.5lh + var(--markra-block-toolbar-block-offset, 0px));
+    z-index: 5;
+    display: inline-flex !important;
+    flex: none;
+    margin: 0 !important;
+    opacity: 0 !important;
+    pointer-events: auto;
+    transform: translateY(-50%);
+  }
+
+  .markdown-paper .cm-line.cm-markra-h1 > .cm-markra-block-toolbar,
+  .markdown-paper .cm-line.cm-markra-h2 > .cm-markra-block-toolbar,
+  .markdown-paper .cm-line.cm-markra-h3 > .cm-markra-block-toolbar,
+  .markdown-paper .cm-line.cm-markra-h4 > .cm-markra-block-toolbar,
+  .markdown-paper .cm-line.cm-markra-h5 > .cm-markra-block-toolbar,
+  .markdown-paper .cm-line.cm-markra-h6 > .cm-markra-block-toolbar {
+    inset-inline-start: var(--markra-heading-toolbar-inline-start);
+    top: calc(50% + var(--markra-heading-control-center-offset));
+  }
+
+  .markdown-paper .cm-line.cm-markra-h1 > .cm-markra-block-toolbar::after,
+  .markdown-paper .cm-line.cm-markra-h2 > .cm-markra-block-toolbar::after,
+  .markdown-paper .cm-line.cm-markra-h3 > .cm-markra-block-toolbar::after,
+  .markdown-paper .cm-line.cm-markra-h4 > .cm-markra-block-toolbar::after,
+  .markdown-paper .cm-line.cm-markra-h5 > .cm-markra-block-toolbar::after,
+  .markdown-paper .cm-line.cm-markra-h6 > .cm-markra-block-toolbar::after {
+    inset-inline-end: -8px;
+    width: 8px;
+  }
+
+  /* The controls sit outside the line box. This invisible bridge keeps the
+     line hovered while the pointer crosses the 12px gutter to the buttons. */
+  .markdown-paper .cm-markra-block-toolbar::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: -12px;
+    width: 12px;
+  }
+
+  .markdown-paper .cm-line:hover > .cm-markra-block-toolbar,
+  .markdown-paper .cm-markra-block-toolbar:focus-within,
+  .markdown-paper .cm-markra-block-toolbar[data-dragging="true"] {
+    opacity: 0.58 !important;
+    pointer-events: auto;
+  }
+
+  .markdown-paper .cm-markra-block-toolbar > button {
+    width: 20px;
+    height: 20px;
+    padding: 0 !important;
+    font-family: var(--editor-font-family) !important;
+    font-size: 12px !important;
+    font-weight: 560 !important;
+    line-height: 1 !important;
+  }
+
+  .markdown-paper .markra-block-toolbar[data-show="true"] {
+    opacity: 0.58 !important;
+    pointer-events: auto;
+  }
+
+  .markdown-paper .markra-block-toolbar:hover,
+  .markdown-paper .markra-block-toolbar:focus-within,
+  .markdown-paper .markra-block-toolbar[data-dragging="true"] {
+    @apply bg-(--bg-hover) text-(--text-heading);
+    opacity: 1 !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  }
+
+  .markdown-paper .markra-block-tool-button {
+    @apply grid h-5 w-5 cursor-pointer place-content-center rounded-sm border-0 bg-transparent p-0 text-(--text-secondary) outline-none transition-[color,background-color] duration-150 ease-out hover:bg-(--bg-active) hover:text-(--text-heading) focus-visible:bg-(--bg-active) focus-visible:text-(--text-heading);
+    display: grid !important;
+  }
+
+  .markdown-paper .markra-block-add-button {
+    @apply relative;
+  }
+
+  .markdown-paper .markra-block-add-button::before,
+  .markdown-paper .markra-block-add-button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 1.25px;
+    border-radius: 999px;
+    background: currentColor;
+    transform: translate(-50%, -50%);
+  }
+
+  .markdown-paper .markra-block-add-button::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  .markdown-paper .markra-block-drag-handle {
+    @apply cursor-grab;
+    grid-template-columns: repeat(2, 2.5px);
+    column-gap: 4px;
+    row-gap: 3px;
+  }
+
+  .markdown-paper .markra-block-drag-handle[data-dragging="true"] {
+    @apply cursor-grabbing;
+  }
+
+  .markdown-paper .markra-block-drag-dot {
+    @apply block rounded-full bg-current;
+    width: 2.5px;
+    height: 2.5px;
+    opacity: 0.78;
+  }
+
+  .markdown-paper .markra-block-drag-source {
+    opacity: 0.42;
+    transition: opacity 120ms ease-out;
+  }
+
+  .markdown-paper .markra-block-drop-indicator {
+    @apply fixed z-40 h-0.5 rounded-full bg-(--accent);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%) scaleX(0.98);
+    transform-origin: center;
+    transition:
+      opacity 120ms ease-out,
+      transform 120ms ease-out;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .markdown-paper .markra-block-drop-indicator[data-show="true"] {
+    opacity: 1;
+    transform: translateY(-50%) scaleX(1);
+  }
+
+  .markdown-paper .markra-block-drag-ghost {
+    @apply fixed z-50 max-w-80 truncate rounded-sm border border-(--border-default) bg-(--bg-primary) px-2 py-1 text-sm leading-5 text-(--text-heading);
+    left: 0;
+    opacity: 0;
+    pointer-events: none;
+    top: 0;
+    transform: translate(-9999px, -9999px);
+    transition: opacity 90ms ease-out;
+    white-space: nowrap;
+    box-shadow:
+      0 10px 24px rgba(15, 23, 42, 0.12),
+      0 1px 3px rgba(15, 23, 42, 0.1);
+    will-change: transform;
+  }
+
+  .markdown-paper .markra-block-drag-ghost[data-show="true"] {
+    opacity: 0.94;
+  }
+
+  .markdown-paper .cm-editor[data-dragging="true"] {
+    cursor: grabbing;
+  }
+
+  html[data-markra-block-dragging="true"],
+  html[data-markra-block-dragging="true"] body,
+  .markdown-paper[data-block-dragging="true"],
+  .markdown-paper[data-block-dragging="true"] * {
+    cursor: grabbing;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  html[data-document-tab-dragging="true"],
+  html[data-document-tab-dragging="true"] body,
+  html[data-document-tab-dragging="true"] * {
+    cursor: grabbing !important;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .markra-cm-source-search-match,
+  .markra-search-match {
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+
+  .markra-cm-source-search-match-current,
+  .markra-search-match-current {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .markra-spellcheck-error {
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: var(--danger);
+    text-decoration-thickness: 1.2px;
+    text-underline-offset: 3px;
+  }
+
+  .markdown-paper {
+    --editor-paper-bg: var(--bg-primary);
+    --editor-text-primary: var(--text-primary);
+    --editor-text-heading: var(--text-heading);
+    --editor-text-secondary: var(--text-secondary);
+    --editor-heading-font-weight: 760;
+    --editor-heading-letter-spacing: 0;
+    --editor-h1-color: var(--editor-text-heading);
+    --editor-h1-font-size: 44px;
+    --editor-h1-font-size-compact: 34px;
+    --editor-h1-font-weight: var(--editor-heading-font-weight);
+    --editor-h1-line-height: 1.15;
+    --editor-h2-color: var(--editor-text-heading);
+    --editor-h2-font-size: 31px;
+    --editor-h2-font-size-compact: 26px;
+    --editor-h2-font-weight: var(--editor-heading-font-weight);
+    --editor-h2-line-height: 1.22;
+    --editor-h3-color: var(--editor-text-heading);
+    --editor-h3-font-size: 24px;
+    --editor-h3-font-weight: var(--editor-heading-font-weight);
+    --editor-h3-line-height: 1.28;
+    --editor-h4-color: var(--editor-text-heading);
+    --editor-h4-font-size: 19px;
+    --editor-h4-font-weight: var(--editor-heading-font-weight);
+    --editor-h4-line-height: 1.35;
+    --editor-h5-color: var(--editor-text-heading);
+    --editor-h5-font-size: 16px;
+    --editor-h5-font-weight: var(--editor-heading-font-weight);
+    --editor-h5-line-height: 1.45;
+    --editor-h6-color: var(--editor-text-heading);
+    --editor-h6-font-size: 16px;
+    --editor-h6-font-weight: var(--editor-heading-font-weight);
+    --editor-h6-line-height: 1.45;
+    --editor-border: var(--border-default);
+    --editor-border-strong: var(--border-strong);
+    --editor-bg-secondary: var(--bg-secondary);
+    --editor-inline-code-bg: var(--bg-code);
+    --editor-inline-code-text: oklch(40% 0.13 247);
+    --editor-code-bg: var(--bg-code);
+    --editor-code-line-bg: color-mix(in srgb, var(--bg-secondary) 72%, var(--bg-code));
+    --editor-code-text: var(--text-primary);
+    --editor-code-control-bg: color-mix(in srgb, var(--editor-code-bg) 82%, var(--editor-paper-bg));
+    --editor-link-color: var(--link-color);
+    --editor-hl-keyword: oklch(43% 0.17 283);
+    --editor-hl-string: oklch(42% 0.13 151);
+    --editor-hl-number: oklch(47% 0.16 42);
+    --editor-hl-title: oklch(44% 0.15 247);
+    --editor-hl-type: oklch(39% 0.13 210);
+    --editor-hl-meta: oklch(44% 0.15 330);
+    --editor-hl-symbol: oklch(40% 0.12 190);
+    --editor-hl-deletion: oklch(45% 0.17 29);
+    --editor-font-family: var(--font-ui);
+    --editor-heading-font-family: var(--editor-font-family);
+    --editor-paragraph-spacing: 8px;
+    --editor-caret-color: var(--accent);
+    color: var(--editor-text-primary);
+    font-family: var(--editor-font-family);
+    transition:
+      color 160ms ease-out,
+      border-color 160ms ease-out;
+  }
+
+  [data-theme="dark"] .markdown-paper,
+  [data-theme="github-dark"] .markdown-paper,
+  [data-theme="night"] .markdown-paper,
+  [data-theme="one-dark"] .markdown-paper,
+  [data-theme="one-dark-pro"] .markdown-paper,
+  .markdown-paper[data-editor-theme="dark"],
+  .markdown-paper[data-editor-theme="github-dark"],
+  .markdown-paper[data-editor-theme="one-dark"],
+  .markdown-paper[data-editor-theme="one-dark-pro"] {
+    --editor-inline-code-text: oklch(78% 0.09 225);
+    --editor-code-control-bg: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+    --editor-link-color: #b7c5ff;
+    --editor-hl-keyword: oklch(78% 0.11 285);
+    --editor-hl-string: oklch(76% 0.1 151);
+    --editor-hl-number: oklch(76% 0.12 70);
+    --editor-hl-title: oklch(76% 0.1 220);
+    --editor-hl-type: oklch(76% 0.08 196);
+    --editor-hl-meta: oklch(76% 0.1 330);
+    --editor-hl-symbol: oklch(76% 0.09 185);
+    --editor-hl-deletion: oklch(72% 0.12 29);
+  }
+
+  [data-theme="dark"] .markdown-paper,
+  [data-theme="github-dark"] .markdown-paper,
+  [data-theme="night"] .markdown-paper,
+  [data-theme="one-dark"] .markdown-paper,
+  [data-theme="one-dark-pro"] .markdown-paper,
+  [data-theme="solarized-dark"] .markdown-paper,
+  [data-theme="nord"] .markdown-paper,
+  [data-theme="catppuccin-mocha"] .markdown-paper,
+  .markdown-paper[data-editor-theme="dark"],
+  .markdown-paper[data-editor-theme="github-dark"],
+  .markdown-paper[data-editor-theme="night"],
+  .markdown-paper[data-editor-theme="one-dark"],
+  .markdown-paper[data-editor-theme="one-dark-pro"],
+  .markdown-paper[data-editor-theme="solarized-dark"],
+  .markdown-paper[data-editor-theme="nord"],
+  .markdown-paper[data-editor-theme="catppuccin-mocha"] {
+    --editor-caret-color: #ffffff;
+  }
+
+  .markdown-paper[data-editor-theme="night"] {
+    --editor-paper-bg: oklch(18% 0.018 250);
+    --editor-text-primary: oklch(82% 0.018 250);
+    --editor-text-heading: oklch(92% 0.012 250);
+    --editor-text-secondary: oklch(65% 0.024 250);
+    --editor-border: oklch(31% 0.025 250);
+    --editor-border-strong: oklch(38% 0.03 250);
+    --editor-bg-secondary: oklch(23% 0.02 250);
+    --editor-code-bg: oklch(15% 0.02 250);
+    --editor-code-line-bg: oklch(20% 0.022 250);
+    --editor-code-text: oklch(84% 0.018 250);
+    --editor-code-control-bg: oklch(23% 0.024 250 / 0.96);
+    --editor-inline-code-bg: oklch(24% 0.025 250);
+    --editor-inline-code-text: oklch(76% 0.1 205);
+    --editor-link-color: #b7c5ff;
+    --editor-hl-keyword: oklch(76% 0.12 285);
+    --editor-hl-string: oklch(78% 0.11 151);
+    --editor-hl-number: oklch(78% 0.12 70);
+    --editor-hl-title: oklch(76% 0.1 220);
+    --editor-hl-type: oklch(78% 0.09 196);
+    --editor-hl-meta: oklch(76% 0.11 330);
+    --editor-hl-symbol: oklch(77% 0.1 185);
+    --editor-hl-deletion: oklch(73% 0.13 29);
+  }
+
+  .markdown-paper[data-editor-theme="gothic"] {
+    --editor-font-family: "Avenir Next", Avenir, "Segoe UI", Helvetica, Arial, sans-serif;
+    --editor-heading-font-family: "Avenir Next", Avenir, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  .markdown-paper[data-editor-theme="newsprint"] {
+    --editor-font-family: Georgia, "Times New Roman", serif;
+    --editor-heading-font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .markdown-paper[data-editor-theme="pixyll"] {
+    --editor-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  .markdown-paper[data-editor-theme="academic"] {
+    --editor-font-family: Georgia, "Times New Roman", serif;
+    --editor-heading-font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .markdown-paper[data-editor-theme="minimal"] {
+    --editor-font-family: var(--font-ui);
+  }
+
+  .markdown-paper[data-editor-theme="custom"] {
+    --editor-paper-bg: var(--bg-primary);
+    --editor-text-primary: var(--text-primary);
+    --editor-text-heading: var(--text-heading);
+    --editor-text-secondary: var(--text-secondary);
+    --editor-border: var(--border-default);
+    --editor-border-strong: var(--border-strong);
+    --editor-bg-secondary: var(--bg-secondary);
+    --editor-inline-code-bg: var(--bg-code);
+    --editor-code-bg: var(--bg-code);
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="sepia"] {
+    --editor-paper-bg: #fbf0d9;
+    --editor-text-primary: #4b3828;
+    --editor-text-heading: #2f241b;
+    --editor-text-secondary: #7a654d;
+    --editor-border: #dfc596;
+    --editor-border-strong: #c8a974;
+    --editor-bg-secondary: #f3e2bd;
+    --editor-inline-code-bg: #f5e6c8;
+    --editor-inline-code-text: #6f3d18;
+    --editor-code-bg: #f5e6c8;
+    --editor-code-line-bg: #ead6aa;
+    --editor-link-color: #6f3d18;
+    --editor-hl-keyword: #8f4e22;
+    --editor-hl-string: #587a37;
+    --editor-hl-number: #9b5e23;
+    --editor-hl-title: #315f8c;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="solarized-light"] {
+    --editor-paper-bg: #fdf6e3;
+    --editor-text-primary: #586e75;
+    --editor-text-heading: #073642;
+    --editor-text-secondary: #839496;
+    --editor-border: #d8cfb2;
+    --editor-border-strong: #c8bd9c;
+    --editor-bg-secondary: #eee8d5;
+    --editor-inline-code-bg: #eee8d5;
+    --editor-inline-code-text: #268bd2;
+    --editor-code-bg: #eee8d5;
+    --editor-code-line-bg: #e1d8bd;
+    --editor-link-color: #006cae;
+    --editor-hl-keyword: #859900;
+    --editor-hl-string: #2aa198;
+    --editor-hl-number: #d33682;
+    --editor-hl-title: #268bd2;
+    --editor-hl-type: #b58900;
+    --editor-hl-meta: #6c71c4;
+    --editor-hl-symbol: #cb4b16;
+    --editor-hl-deletion: #dc322f;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="solarized-dark"] {
+    --editor-paper-bg: #002b36;
+    --editor-text-primary: #93a1a1;
+    --editor-text-heading: #eee8d5;
+    --editor-text-secondary: #839496;
+    --editor-border: #164b5a;
+    --editor-border-strong: #2a5d6a;
+    --editor-bg-secondary: #073642;
+    --editor-inline-code-bg: #073642;
+    --editor-inline-code-text: #2aa198;
+    --editor-code-bg: #073642;
+    --editor-code-line-bg: #002b36;
+    --editor-code-text: #93a1a1;
+    --editor-link-color: #2aa198;
+    --editor-hl-keyword: #859900;
+    --editor-hl-string: #2aa198;
+    --editor-hl-number: #d33682;
+    --editor-hl-title: #268bd2;
+    --editor-hl-type: #b58900;
+    --editor-hl-meta: #6c71c4;
+    --editor-hl-symbol: #cb4b16;
+    --editor-hl-deletion: #dc322f;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="nord"] {
+    --editor-paper-bg: #2e3440;
+    --editor-text-primary: #d8dee9;
+    --editor-text-heading: #eceff4;
+    --editor-text-secondary: #a7b1c3;
+    --editor-border: #4c566a;
+    --editor-border-strong: #5e6b83;
+    --editor-bg-secondary: #3b4252;
+    --editor-inline-code-bg: #242933;
+    --editor-inline-code-text: #88c0d0;
+    --editor-code-bg: #242933;
+    --editor-code-line-bg: #2e3440;
+    --editor-code-text: #d8dee9;
+    --editor-link-color: #8fbcbb;
+    --editor-hl-keyword: #81a1c1;
+    --editor-hl-string: #a3be8c;
+    --editor-hl-number: #b48ead;
+    --editor-hl-title: #88c0d0;
+    --editor-hl-type: #8fbcbb;
+    --editor-hl-meta: #d08770;
+    --editor-hl-symbol: #ebcb8b;
+    --editor-hl-deletion: #bf616a;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="catppuccin-latte"] {
+    --editor-paper-bg: #eff1f5;
+    --editor-text-primary: #4c4f69;
+    --editor-text-heading: #1e1e2e;
+    --editor-text-secondary: #6c6f85;
+    --editor-border: #ccd0da;
+    --editor-border-strong: #bcc0cc;
+    --editor-bg-secondary: #e6e9ef;
+    --editor-inline-code-bg: #e6e9ef;
+    --editor-inline-code-text: #1e66f5;
+    --editor-code-bg: #e6e9ef;
+    --editor-code-line-bg: #dce0e8;
+    --editor-link-color: #04a5e5;
+    --editor-hl-keyword: #8839ef;
+    --editor-hl-string: #40a02b;
+    --editor-hl-number: #fe640b;
+    --editor-hl-title: #1e66f5;
+    --editor-hl-type: #179299;
+    --editor-hl-meta: #ea76cb;
+    --editor-hl-symbol: #df8e1d;
+    --editor-hl-deletion: #d20f39;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="catppuccin-mocha"] {
+    --editor-paper-bg: #1e1e2e;
+    --editor-text-primary: #cdd6f4;
+    --editor-text-heading: #f5e0dc;
+    --editor-text-secondary: #a6adc8;
+    --editor-border: #45475a;
+    --editor-border-strong: #585b70;
+    --editor-bg-secondary: #313244;
+    --editor-inline-code-bg: #181825;
+    --editor-inline-code-text: #89b4fa;
+    --editor-code-bg: #181825;
+    --editor-code-line-bg: #1e1e2e;
+    --editor-code-text: #cdd6f4;
+    --editor-link-color: #94e2d5;
+    --editor-hl-keyword: #cba6f7;
+    --editor-hl-string: #a6e3a1;
+    --editor-hl-number: #fab387;
+    --editor-hl-title: #89b4fa;
+    --editor-hl-type: #94e2d5;
+    --editor-hl-meta: #f5c2e7;
+    --editor-hl-symbol: #f9e2af;
+    --editor-hl-deletion: #f38ba8;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="academic"] {
+    --editor-paper-bg: #fbfaf7;
+    --editor-text-primary: #302a22;
+    --editor-text-heading: #191612;
+    --editor-text-secondary: #6b6254;
+    --editor-border: #ded6c8;
+    --editor-border-strong: #c9bdab;
+    --editor-bg-secondary: #f1efe8;
+    --editor-inline-code-bg: #eeeae0;
+    --editor-inline-code-text: #315f8c;
+    --editor-code-bg: #eeeae0;
+    --editor-code-line-bg: #e5dfd1;
+    --editor-link-color: #244866;
+    --editor-hl-keyword: #884a2d;
+    --editor-hl-string: #4d7238;
+    --editor-hl-number: #8a5a2b;
+    --editor-hl-title: #315f8c;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="minimal"] {
+    --editor-paper-bg: #fdfdfc;
+    --editor-text-primary: #2f302d;
+    --editor-text-heading: #171815;
+    --editor-text-secondary: #777972;
+    --editor-border: #e7e7e2;
+    --editor-border-strong: #d5d6cf;
+    --editor-bg-secondary: #f7f7f5;
+    --editor-inline-code-bg: #f3f3f1;
+    --editor-inline-code-text: #4b6f77;
+    --editor-code-bg: #f3f3f1;
+    --editor-code-line-bg: #ededeb;
+    --editor-link-color: #36565f;
+    --editor-hl-keyword: #5a6070;
+    --editor-hl-string: #55705a;
+    --editor-hl-number: #775b42;
+    --editor-hl-title: #4b6f77;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="github"] {
+    --editor-paper-bg: #ffffff;
+    --editor-text-primary: #1f2328;
+    --editor-text-heading: #1f2328;
+    --editor-text-secondary: #59636e;
+    --editor-border: #d1d9e0;
+    --editor-border-strong: #d1d9e0;
+    --editor-bg-secondary: #f6f8fa;
+    --editor-inline-code-bg: rgba(175, 184, 193, 0.2);
+    --editor-inline-code-text: #1f2328;
+    --editor-code-bg: #f6f8fa;
+    --editor-code-line-bg: #eff2f5;
+    --editor-code-text: #1f2328;
+    --editor-code-control-bg: rgba(255, 255, 255, 0.92);
+    --editor-link-color: #0550ae;
+    --editor-hl-keyword: #cf222e;
+    --editor-hl-string: #0a3069;
+    --editor-hl-number: #0550ae;
+    --editor-hl-title: #8250df;
+    --editor-hl-type: #116329;
+    --editor-hl-meta: #6e7781;
+    --editor-hl-symbol: #953800;
+    --editor-hl-deletion: #82071e;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="github-dark"] {
+    --editor-paper-bg: #0d1117;
+    --editor-text-primary: #e6edf3;
+    --editor-text-heading: #f0f6fc;
+    --editor-text-secondary: #7d8590;
+    --editor-border: #30363d;
+    --editor-border-strong: #484f58;
+    --editor-bg-secondary: #161b22;
+    --editor-inline-code-bg: rgba(110, 118, 129, 0.4);
+    --editor-inline-code-text: #e6edf3;
+    --editor-code-bg: #161b22;
+    --editor-code-line-bg: #0d1117;
+    --editor-code-text: #e6edf3;
+    --editor-code-control-bg: rgba(22, 27, 34, 0.92);
+    --editor-link-color: #58a6ff;
+    --editor-hl-keyword: #ff7b72;
+    --editor-hl-string: #a5d6ff;
+    --editor-hl-number: #79c0ff;
+    --editor-hl-title: #d2a8ff;
+    --editor-hl-type: #7ee787;
+    --editor-hl-meta: #8b949e;
+    --editor-hl-symbol: #ffa657;
+    --editor-hl-deletion: #ffa198;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="one-dark"] {
+    --editor-paper-bg: #282c34;
+    --editor-text-primary: #abb2bf;
+    --editor-text-heading: #e6edf3;
+    --editor-text-secondary: #8f96a3;
+    --editor-border: #3b4048;
+    --editor-border-strong: #4b5263;
+    --editor-bg-secondary: #21252b;
+    --editor-inline-code-bg: #2c313a;
+    --editor-inline-code-text: #e06c75;
+    --editor-code-bg: #21252b;
+    --editor-code-line-bg: #2c313a;
+    --editor-code-text: #abb2bf;
+    --editor-code-control-bg: rgba(33, 37, 43, 0.92);
+    --editor-link-color: #61afef;
+    --editor-hl-keyword: #c678dd;
+    --editor-hl-string: #98c379;
+    --editor-hl-number: #d19a66;
+    --editor-hl-title: #61afef;
+    --editor-hl-type: #e5c07b;
+    --editor-hl-meta: #56b6c2;
+    --editor-hl-symbol: #e06c75;
+    --editor-hl-deletion: #e06c75;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="one-light"] {
+    --editor-paper-bg: #fafafa;
+    --editor-text-primary: #383a42;
+    --editor-text-heading: #202227;
+    --editor-text-secondary: #a0a1a7;
+    --editor-border: #d7dae0;
+    --editor-border-strong: #c3c5cb;
+    --editor-bg-secondary: #f0f0f0;
+    --editor-inline-code-bg: #eaeaeb;
+    --editor-inline-code-text: #a626a4;
+    --editor-code-bg: #f0f0f0;
+    --editor-code-line-bg: #e5e5e6;
+    --editor-code-text: #383a42;
+    --editor-code-control-bg: rgba(250, 250, 250, 0.92);
+    --editor-link-color: #4078f2;
+    --editor-hl-keyword: #a626a4;
+    --editor-hl-string: #50a14f;
+    --editor-hl-number: #986801;
+    --editor-hl-title: #4078f2;
+    --editor-hl-type: #c18401;
+    --editor-hl-meta: #0184bc;
+    --editor-hl-symbol: #e45649;
+    --editor-hl-deletion: #ca1243;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="one-dark-pro"] {
+    --editor-paper-bg: #282c34;
+    --editor-text-primary: #abb2bf;
+    --editor-text-heading: #e6edf3;
+    --editor-text-secondary: #8f96a3;
+    --editor-border: #3e4451;
+    --editor-border-strong: #4b5263;
+    --editor-bg-secondary: #21252b;
+    --editor-inline-code-bg: #2c313a;
+    --editor-inline-code-text: #e06c75;
+    --editor-code-bg: #21252b;
+    --editor-code-line-bg: #2c313a;
+    --editor-code-text: #abb2bf;
+    --editor-code-control-bg: rgba(33, 37, 43, 0.92);
+    --editor-link-color: #61afef;
+    --editor-hl-keyword: #c678dd;
+    --editor-hl-string: #98c379;
+    --editor-hl-number: #d19a66;
+    --editor-hl-title: #61afef;
+    --editor-hl-type: #e5c07b;
+    --editor-hl-meta: #56b6c2;
+    --editor-hl-symbol: #e06c75;
+    --editor-hl-deletion: #e06c75;
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="gothic"] {
+    --editor-paper-bg: oklch(96% 0.012 77);
+    --editor-text-primary: oklch(30% 0.016 70);
+    --editor-text-heading: oklch(21% 0.016 70);
+    --editor-text-secondary: oklch(48% 0.024 70);
+    --editor-border: oklch(84% 0.024 74);
+    --editor-border-strong: oklch(73% 0.032 74);
+    --editor-bg-secondary: oklch(92% 0.018 77);
+    --editor-inline-code-bg: oklch(91% 0.022 78);
+    --editor-code-bg: oklch(90% 0.018 78);
+    --editor-code-line-bg: oklch(86% 0.022 78);
+    --editor-link-color: oklch(36% 0.14 31);
+    --editor-hl-keyword: oklch(38% 0.13 31);
+    --editor-hl-string: oklch(37% 0.09 139);
+    --editor-hl-title: oklch(36% 0.11 250);
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="newsprint"] {
+    --editor-paper-bg: oklch(96% 0.018 88);
+    --editor-text-primary: oklch(28% 0.012 75);
+    --editor-text-heading: oklch(18% 0.012 75);
+    --editor-text-secondary: oklch(45% 0.018 75);
+    --editor-border: oklch(80% 0.025 78);
+    --editor-border-strong: oklch(68% 0.03 78);
+    --editor-bg-secondary: oklch(91% 0.022 86);
+    --editor-inline-code-bg: oklch(89% 0.024 86);
+    --editor-code-bg: oklch(88% 0.02 86);
+    --editor-code-line-bg: oklch(83% 0.026 86);
+    --editor-link-color: oklch(34% 0.13 24);
+    --editor-hl-keyword: oklch(35% 0.12 24);
+    --editor-hl-string: oklch(36% 0.09 145);
+    --editor-hl-title: oklch(34% 0.1 248);
+    --editor-hl-meta: oklch(36% 0.1 325);
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="pixyll"] {
+    --editor-paper-bg: oklch(98% 0.012 94);
+    --editor-text-primary: oklch(33% 0.017 254);
+    --editor-text-heading: oklch(24% 0.02 254);
+    --editor-text-secondary: oklch(51% 0.026 254);
+    --editor-border: oklch(88% 0.018 94);
+    --editor-border-strong: oklch(78% 0.026 94);
+    --editor-bg-secondary: oklch(95% 0.018 94);
+    --editor-inline-code-bg: oklch(94% 0.022 94);
+    --editor-code-bg: oklch(94.5% 0.017 94);
+    --editor-code-line-bg: oklch(90% 0.021 94);
+    --editor-link-color: oklch(38% 0.17 15);
+    --editor-hl-keyword: oklch(46% 0.16 15);
+    --editor-hl-string: oklch(44% 0.12 157);
+    --editor-hl-title: oklch(43% 0.15 236);
+  }
+
+  :root:not([data-theme="dark"]) .markdown-paper[data-editor-theme="whitey"] {
+    --editor-paper-bg: oklch(99.3% 0.004 106);
+    --editor-text-primary: oklch(31% 0.011 106);
+    --editor-text-heading: oklch(20% 0.01 106);
+    --editor-text-secondary: oklch(54% 0.014 106);
+    --editor-border: oklch(91% 0.008 106);
+    --editor-border-strong: oklch(83% 0.012 106);
+    --editor-bg-secondary: oklch(97.5% 0.006 106);
+    --editor-inline-code-bg: oklch(96% 0.008 106);
+    --editor-code-bg: oklch(97% 0.006 106);
+    --editor-code-line-bg: oklch(94.5% 0.008 106);
+    --editor-link-color: oklch(41% 0.14 215);
+  }
+
+  .markdown-paper[data-editor-theme="newsprint"] .cm-content ::selection,
+  .markdown-paper[data-editor-theme="gothic"] .cm-content ::selection,
+  .markdown-paper[data-editor-theme="pixyll"] .cm-content ::selection,
+  .markdown-paper[data-editor-theme="whitey"] .cm-content ::selection {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+
+  .markdown-paper h1,
+  .markdown-paper h2,
+  .markdown-paper h3,
+  .markdown-paper h4,
+  .markdown-paper h5,
+  .markdown-paper h6 {
+    font-family: var(--editor-heading-font-family);
+    letter-spacing: var(--editor-heading-letter-spacing);
+  }
+
+  .markdown-paper h1 {
+    @apply m-0 mb-6;
+    color: var(--editor-h1-color);
+    font-size: var(--editor-h1-font-size);
+    font-weight: var(--editor-h1-font-weight);
+    line-height: var(--editor-h1-line-height);
+  }
+
+  .markdown-paper h2 {
+    @apply mt-9 mb-5;
+    color: var(--editor-h2-color);
+    font-size: var(--editor-h2-font-size);
+    font-weight: var(--editor-h2-font-weight);
+    line-height: var(--editor-h2-line-height);
+  }
+
+  .markdown-paper h3 {
+    @apply mt-7.5 mb-3;
+    color: var(--editor-h3-color);
+    font-size: var(--editor-h3-font-size);
+    font-weight: var(--editor-h3-font-weight);
+    line-height: var(--editor-h3-line-height);
+  }
+
+  .markdown-paper h4 {
+    color: var(--editor-h4-color);
+    font-size: var(--editor-h4-font-size);
+    font-weight: var(--editor-h4-font-weight);
+    line-height: var(--editor-h4-line-height);
+  }
+
+  .markdown-paper h5 {
+    color: var(--editor-h5-color);
+    font-size: var(--editor-h5-font-size);
+    font-weight: var(--editor-h5-font-weight);
+    line-height: var(--editor-h5-line-height);
+  }
+
+  .markdown-paper h6 {
+    color: var(--editor-h6-color);
+    font-size: var(--editor-h6-font-size);
+    font-weight: var(--editor-h6-font-weight);
+    line-height: var(--editor-h6-line-height);
+  }
+
+  @media (max-width: 900px) {
+    .markdown-paper h1 {
+      font-size: var(--editor-h1-font-size-compact);
+    }
+
+    .markdown-paper h2 {
+      font-size: var(--editor-h2-font-size-compact);
+    }
+  }
+
+  .markdown-paper[data-editor-theme="github"] h1,
+  .markdown-paper[data-editor-theme="github-dark"] h1,
+  .markdown-paper[data-editor-theme="github"] h2,
+  .markdown-paper[data-editor-theme="github-dark"] h2 {
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid var(--editor-border);
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  .markdown-paper[data-editor-theme="github"] h1,
+  .markdown-paper[data-editor-theme="github-dark"] h1 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 2em;
+  }
+
+  .markdown-paper[data-editor-theme="github"] h2,
+  .markdown-paper[data-editor-theme="github-dark"] h2 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.5em;
+  }
+
+  .markdown-paper .markra-heading-editing {
+    @apply relative;
+  }
+
+  .markdown-paper .markra-heading-level-control {
+    position: absolute;
+    left: -28px;
+    top: calc(50% + var(--markra-heading-control-center-offset));
+    z-index: 5;
+    display: inline-grid;
+    margin: 0;
+    transform: translateY(-50%);
+  }
+
+  .markdown-paper .markra-heading-level-button {
+    display: grid;
+    place-content: center;
+    width: 1.75rem;
+    height: 1.25rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    padding: 0;
+    color: color-mix(in srgb, var(--editor-text-secondary) 58%, transparent);
+    font-family: var(--editor-font-family);
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1;
+    transition:
+      background-color 150ms ease-out,
+      border-color 150ms ease-out,
+      color 150ms ease-out;
+  }
+
+  .markdown-paper .markra-heading-level-button::before {
+    content: attr(data-heading-level);
+  }
+
+  .markdown-paper .markra-heading-level-button:hover,
+  .markdown-paper .markra-heading-level-button:focus-visible {
+    border-color: var(--editor-border);
+    background: var(--editor-bg-secondary);
+    color: var(--editor-text-secondary);
+    outline: none;
+  }
+
+  .markdown-paper .markra-heading-level-list {
+    position: absolute;
+    z-index: 70;
+    inset-block-start: calc(100% + 4px);
+    inset-inline-start: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    width: 6.25rem;
+    border: 1px solid var(--editor-border);
+    border-radius: 6px;
+    background: var(--editor-paper-bg);
+    padding: 4px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+  }
+
+  .markdown-paper .markra-heading-level-list [role="option"] {
+    display: grid;
+    height: 1.5rem;
+    cursor: pointer;
+    place-content: center;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    padding: 0;
+    color: var(--editor-text-secondary);
+    font-family: var(--editor-font-family);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1;
+  }
+
+  .markdown-paper .markra-heading-level-list [data-heading-level="paragraph"] {
+    grid-column: 1 / -1;
+    padding-inline: 0.5rem;
+  }
+
+  .markdown-paper .markra-heading-level-list [role="option"]:hover,
+  .markdown-paper .markra-heading-level-list [role="option"]:focus-visible {
+    background: var(--editor-bg-secondary);
+    color: var(--editor-text-heading);
+    outline: none;
+  }
+
+  .markdown-paper .markra-heading-level-list [role="option"][aria-selected="true"] {
+    background: var(--editor-bg-secondary);
+    color: var(--editor-text-heading);
+  }
+
+  .markdown-paper .cm-line.markra-heading-toggle-heading {
+    @apply relative;
+    --markra-heading-toolbar-inline-start: -104px;
+  }
+
+  .markdown-paper .markra-heading-toggle-button {
+    @apply absolute inline-flex size-5 cursor-pointer items-center justify-center rounded-sm border-0 bg-transparent p-0 outline-none transition-[opacity,color,background-color] duration-150 ease-out focus-visible:bg-(--bg-hover) focus-visible:outline-none;
+    color: color-mix(in srgb, var(--editor-text-secondary) 62%, transparent);
+    left: -54px;
+    display: inline-flex !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    top: calc(50% + var(--markra-heading-control-center-offset));
+    transform: translateY(-50%);
+  }
+
+  .markdown-paper .markra-heading-toggle-heading:hover > .markra-heading-toggle-button,
+  .markdown-paper .markra-heading-toggle-heading:focus-within > .markra-heading-toggle-button {
+    opacity: 0.72 !important;
+  }
+
+  .markdown-paper .markra-heading-toggle-button:hover,
+  .markdown-paper .markra-heading-toggle-button:focus-visible {
+    color: var(--editor-text-secondary);
+    opacity: 1 !important;
+  }
+
+  .markdown-paper .markra-heading-toggle-button::before {
+    content: "" !important;
+    width: 7px;
+    height: 7px;
+    border-right: 1.6px solid currentColor;
+    border-bottom: 1.6px solid currentColor;
+    transform: rotate(45deg);
+    transform-origin: center;
+    transition: transform 120ms ease-out;
+  }
+
+  .markdown-paper .markra-heading-toggle-button[data-collapsed="true"]::before {
+    transform: rotate(-45deg);
+  }
+
+  .markdown-paper .markra-heading-collapsed-content {
+    display: none !important;
+  }
+
+  .markdown-paper .markra-list-toggle-item {
+    /* Reserve the toolbar, its 12px hover bridge, and a 4px gap before the
+       fold button so invisible hit areas cannot cover either control. */
+    --markra-block-toolbar-inline-start: -94px;
+    position: relative;
+  }
+
+  .markdown-paper .markra-list-toggle-button {
+    @apply absolute inline-flex size-4 cursor-pointer items-center justify-center rounded-sm border-0 bg-transparent p-0 outline-none transition-[opacity,color,background-color] duration-150 ease-out focus-visible:bg-(--bg-hover) focus-visible:outline-none;
+    color: color-mix(in srgb, var(--editor-text-secondary) 62%, transparent);
+    inset-inline-start: -36px;
+    display: inline-flex !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    top: calc((1lh - 1rem) / 2);
+  }
+
+  .markdown-paper .markra-list-toggle-item:hover > .markra-list-toggle-button,
+  .markdown-paper .markra-list-toggle-item:focus-within > .markra-list-toggle-button,
+  .markdown-paper .markra-list-toggle-item[data-list-collapsed="true"] > .markra-list-toggle-button {
+    opacity: 0.72 !important;
+  }
+
+  .markdown-paper .markra-list-toggle-button:hover,
+  .markdown-paper .markra-list-toggle-button:focus-visible {
+    color: var(--editor-text-secondary);
+    opacity: 1 !important;
+  }
+
+  .markdown-paper .markra-list-toggle-button::before {
+    content: "" !important;
+    width: 6px;
+    height: 6px;
+    border-right: 1.4px solid currentColor;
+    border-bottom: 1.4px solid currentColor;
+    transform: rotate(45deg);
+    transform-origin: center;
+    transition: transform 120ms ease-out;
+  }
+
+  .markdown-paper .markra-list-toggle-button[data-collapsed="true"]::before {
+    transform: rotate(-45deg);
+  }
+
+  .markdown-paper .markra-list-toggle-item > ul,
+  .markdown-paper .markra-list-toggle-item > ol {
+    margin-left: 0.15em;
+    padding-left: 1.2em;
+  }
+
+  .markdown-paper .markra-list-collapsed-content {
+    display: none !important;
+  }
+
+  .markdown-paper p {
+    margin-block: 0 var(--editor-paragraph-spacing);
+    color: var(--editor-text-primary);
+  }
+
+  .markdown-paper blockquote {
+    @apply my-4.5 mr-0 border-l border-(--border-strong) py-0 pr-0 pl-5 text-(--text-secondary);
+    border-color: var(--editor-border-strong);
+    color: var(--editor-text-secondary);
+  }
+
+  .markdown-paper blockquote.markra-callout {
+    --callout-color: oklch(57% 0.11 252);
+    --callout-bg: color-mix(in srgb, var(--callout-color) 5%, var(--editor-paper-bg));
+    --callout-border: color-mix(in srgb, var(--callout-color) 22%, var(--editor-border));
+    --callout-border-focus: color-mix(in srgb, var(--callout-color) 38%, var(--editor-border-strong));
+    @apply relative my-5 rounded-[7px] border px-4 py-3.5 text-(--text-primary) transition-[background-color,border-color] duration-150 ease-out;
+    background: var(--callout-bg);
+    border-color: var(--callout-border);
+    color: var(--editor-text-primary);
+  }
+
+  .markdown-paper blockquote.markra-callout-tip {
+    --callout-color: oklch(56% 0.11 154);
+  }
+
+  .markdown-paper blockquote.markra-callout-important {
+    --callout-color: oklch(55% 0.12 292);
+  }
+
+  .markdown-paper blockquote.markra-callout-warning {
+    --callout-color: oklch(62% 0.12 72);
+  }
+
+  .markdown-paper blockquote.markra-callout-caution {
+    --callout-color: oklch(57% 0.13 28);
+  }
+
+  [data-theme="dark"] .markdown-paper blockquote.markra-callout,
+  [data-theme="github-dark"] .markdown-paper blockquote.markra-callout,
+  [data-theme="night"] .markdown-paper blockquote.markra-callout,
+  [data-theme="one-dark"] .markdown-paper blockquote.markra-callout,
+  [data-theme="one-dark-pro"] .markdown-paper blockquote.markra-callout,
+  [data-theme="solarized-dark"] .markdown-paper blockquote.markra-callout,
+  [data-theme="nord"] .markdown-paper blockquote.markra-callout,
+  [data-theme="catppuccin-mocha"] .markdown-paper blockquote.markra-callout,
+  .markdown-paper[data-editor-theme="dark"] blockquote.markra-callout,
+  .markdown-paper[data-editor-theme="github-dark"] blockquote.markra-callout,
+  .markdown-paper[data-editor-theme="night"] blockquote.markra-callout,
+  .markdown-paper[data-editor-theme="one-dark"] blockquote.markra-callout,
+  .markdown-paper[data-editor-theme="one-dark-pro"] blockquote.markra-callout,
+  .markdown-paper[data-editor-theme="solarized-dark"] blockquote.markra-callout,
+  .markdown-paper[data-editor-theme="nord"] blockquote.markra-callout,
+  .markdown-paper[data-editor-theme="catppuccin-mocha"] blockquote.markra-callout {
+    --callout-bg: color-mix(in srgb, var(--callout-color) 10%, var(--editor-paper-bg));
+    --callout-border: color-mix(in srgb, var(--callout-color) 32%, var(--editor-border));
+  }
+
+  .markdown-paper .cm-line.cm-markra-callout {
+    --callout-color: oklch(57% 0.11 252) !important;
+    --callout-bg: color-mix(in srgb, var(--callout-color) 5%, var(--editor-paper-bg));
+    --callout-border: color-mix(in srgb, var(--callout-color) 22%, var(--editor-border));
+    --callout-border-focus: color-mix(in srgb, var(--callout-color) 38%, var(--editor-border-strong));
+    position: relative !important;
+    box-sizing: border-box;
+    min-height: 1lh;
+    margin-block: 0 !important;
+    border-block-width: 0 !important;
+    border-inline: 1px solid var(--callout-border) !important;
+    border-radius: 0;
+    padding-block: 0 !important;
+    padding-inline: 16px !important;
+    background: var(--callout-bg) !important;
+    color: var(--editor-text-primary) !important;
+  }
+
+  .markdown-paper .cm-line.markra-callout-first {
+    --markra-block-toolbar-block-offset: 14px;
+    border-block-start: 1px solid var(--callout-border) !important;
+    border-start-start-radius: 7px;
+    border-start-end-radius: 7px;
+    padding-block-start: 14px !important;
+  }
+
+  .markdown-paper .cm-line.markra-callout-last {
+    border-block-end: 1px solid var(--callout-border) !important;
+    border-end-start-radius: 7px;
+    border-end-end-radius: 7px;
+    padding-block-end: 14px !important;
+  }
+
+  .markdown-paper .markra-callout-spacer {
+    height: 20px;
+  }
+
+  .markdown-paper .cm-line.markra-callout-tip {
+    --callout-color: oklch(56% 0.11 154) !important;
+  }
+
+  .markdown-paper .cm-line.markra-callout-important {
+    --callout-color: oklch(55% 0.12 292) !important;
+  }
+
+  .markdown-paper .cm-line.markra-callout-warning {
+    --callout-color: oklch(62% 0.12 72) !important;
+  }
+
+  .markdown-paper .cm-line.markra-callout-caution {
+    --callout-color: oklch(57% 0.13 28) !important;
+  }
+
+  [data-theme="dark"] .markdown-paper .cm-line.cm-markra-callout,
+  [data-theme="github-dark"] .markdown-paper .cm-line.cm-markra-callout,
+  [data-theme="night"] .markdown-paper .cm-line.cm-markra-callout,
+  [data-theme="one-dark"] .markdown-paper .cm-line.cm-markra-callout,
+  [data-theme="one-dark-pro"] .markdown-paper .cm-line.cm-markra-callout,
+  [data-theme="solarized-dark"] .markdown-paper .cm-line.cm-markra-callout,
+  [data-theme="nord"] .markdown-paper .cm-line.cm-markra-callout,
+  [data-theme="catppuccin-mocha"] .markdown-paper .cm-line.cm-markra-callout,
+  .markdown-paper[data-editor-theme="dark"] .cm-line.cm-markra-callout,
+  .markdown-paper[data-editor-theme="github-dark"] .cm-line.cm-markra-callout,
+  .markdown-paper[data-editor-theme="night"] .cm-line.cm-markra-callout,
+  .markdown-paper[data-editor-theme="one-dark"] .cm-line.cm-markra-callout,
+  .markdown-paper[data-editor-theme="one-dark-pro"] .cm-line.cm-markra-callout,
+  .markdown-paper[data-editor-theme="solarized-dark"] .cm-line.cm-markra-callout,
+  .markdown-paper[data-editor-theme="nord"] .cm-line.cm-markra-callout,
+  .markdown-paper[data-editor-theme="catppuccin-mocha"] .cm-line.cm-markra-callout {
+    --callout-bg: color-mix(in srgb, var(--callout-color) 10%, var(--editor-paper-bg));
+    --callout-border: color-mix(in srgb, var(--callout-color) 32%, var(--editor-border));
+  }
+
+  .markdown-paper .markra-callout-header {
+    @apply mb-2 inline-flex min-h-5 items-center gap-2 text-[0.76em] leading-5 font-[720] tracking-normal;
+    color: var(--callout-color);
+  }
+
+  .markdown-paper .cm-line.markra-callout-first .markra-callout-type-select {
+    position: absolute;
+    inset-block-start: 14px;
+    inset-inline-end: 16px;
+  }
+
+  .markdown-paper .markra-callout-icon {
+    @apply relative inline-grid size-4 shrink-0 place-items-center rounded-full;
+    background: color-mix(in srgb, currentColor 11%, var(--editor-paper-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 24%, transparent);
+  }
+
+  .markdown-paper .markra-callout-icon::before {
+    @apply block size-1.5 rounded-full;
+    content: "";
+    background: currentColor;
+  }
+
+  .markdown-paper .markra-callout-tip .markra-callout-icon::before {
+    @apply size-1.75 rounded-[2px];
+    transform: rotate(45deg);
+  }
+
+  .markdown-paper .markra-callout-important .markra-callout-icon::before {
+    @apply h-2.25 w-1 rounded-full;
+  }
+
+  .markdown-paper .markra-callout-warning .markra-callout-icon::before {
+    @apply size-2.5 rounded-none;
+    clip-path: polygon(50% 4%, 96% 92%, 4% 92%);
+  }
+
+  .markdown-paper .markra-callout-caution .markra-callout-icon::before {
+    @apply size-2 rounded-[2px];
+  }
+
+  .markdown-paper .markra-callout-title {
+    @apply shrink-0;
+  }
+
+  .markdown-paper .markra-callout-type-select {
+    @apply ml-auto h-6 max-w-30 rounded-md border border-(--border-default) px-2 text-[12px] leading-4 font-[520] text-(--text-secondary) outline-none transition-[opacity,border-color,color,background-color] duration-150 ease-out;
+    background: color-mix(in srgb, var(--editor-paper-bg) 86%, var(--callout-bg));
+    border-color: color-mix(in srgb, var(--callout-color) 18%, var(--editor-border));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .markdown-paper .markra-callout:hover .markra-callout-type-select,
+  .markdown-paper .markra-callout:focus-within .markra-callout-type-select,
+  .markdown-paper .markra-callout-active .markra-callout-type-select {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .markdown-paper blockquote.markra-callout:focus-within {
+    border-color: var(--callout-border-focus);
+  }
+
+  .markdown-paper .cm-line.markra-callout-active {
+    border-color: var(--callout-border-focus) !important;
+  }
+
+  /* Draw a one-line-high typewriter band instead of filling the entire
+     CodeMirror line box. The editor measures the caret's visual row (a
+     logical line can wrap into several rows) and stores its center in
+     --markra-typewriter-active-line-center. */
+  .markdown-paper .cm-editor[data-typewriter-mode="true"].cm-focused
+    .cm-line.cm-activeLine {
+    --typewriter-active-line-color: color-mix(in srgb, currentColor 8%, transparent);
+    background:
+      linear-gradient(
+        var(--typewriter-active-line-color),
+        var(--typewriter-active-line-color)
+      )
+      0 calc(var(--markra-typewriter-active-line-center, 0.5lh) - 0.5lh) / 100% 1lh no-repeat !important;
+  }
+
+  /* The code backdrop is a negative-z pseudo-element, so its active band must
+     be composed into that same surface rather than painted on the parent. */
+  .markdown-paper .cm-editor[data-typewriter-mode="true"].cm-focused
+    .cm-line.cm-activeLine.cm-markra-code-content-line {
+    background: transparent !important;
+  }
+
+  .markdown-paper .cm-editor[data-typewriter-mode="true"].cm-focused
+    .cm-line.cm-activeLine.cm-markra-code-content-line::after {
+    background:
+      linear-gradient(
+        var(--typewriter-active-line-color),
+        var(--typewriter-active-line-color)
+      )
+      0 calc(var(--markra-typewriter-active-line-center, 0.5lh) - 0.5lh) / 100% 1lh no-repeat,
+      linear-gradient(
+        90deg,
+        var(--editor-code-line-bg) 0 43px,
+        var(--editor-border) 43px 44px,
+        var(--editor-code-bg) 44px 100%
+      ) !important;
+  }
+
+  .markdown-paper .cm-editor[data-typewriter-mode="true"].cm-focused
+    .cm-line.cm-activeLine.cm-markra-callout {
+    background:
+      linear-gradient(
+        var(--typewriter-active-line-color),
+        var(--typewriter-active-line-color)
+      )
+      0 calc(var(--markra-typewriter-active-line-center, 0.5lh) - 0.5lh) / 100% 1lh no-repeat,
+      var(--callout-bg) !important;
+  }
+
+  .markdown-paper .markra-callout-type-select:focus {
+    border-color: var(--callout-color);
+    color: var(--editor-text-primary);
+  }
+
+  .markdown-paper .markra-callout-marker-line {
+    @apply hidden;
+  }
+
+  .markdown-paper .markra-callout-source-marker {
+    @apply hidden;
+  }
+
+  .markdown-paper .markra-callout-source-marker + br {
+    @apply hidden;
+  }
+
+  .markdown-paper blockquote.markra-callout p {
+    @apply mb-3;
+    color: var(--editor-text-primary);
+    cursor: text;
+    min-height: 1lh;
+  }
+
+  .markdown-paper blockquote.markra-callout p:first-of-type {
+    @apply mt-0;
+  }
+
+  .markdown-paper blockquote.markra-callout p:last-child {
+    @apply mb-0;
+  }
+
+  .markdown-paper blockquote p {
+    @apply m-0 mb-3;
+  }
+
+  .markdown-paper ul {
+    @apply mt-3 mb-6 list-disc pl-[1.4em] marker:text-(--text-secondary);
+    color: var(--editor-text-primary);
+  }
+
+  .markdown-paper ul ul {
+    list-style-type: circle;
+  }
+
+  .markdown-paper ul ul ul {
+    list-style-type: square;
+  }
+
+  .markdown-paper ol {
+    @apply mt-3 mb-6 list-decimal pl-[1.4em] marker:text-(--text-secondary);
+    color: var(--editor-text-primary);
+  }
+
+  .markdown-paper li {
+    @apply my-2;
+  }
+
+  .markdown-paper.settings-template-preview {
+    @apply min-h-60 overflow-auto rounded-md bg-(--bg-secondary) px-4 py-3 text-[13px] leading-6;
+  }
+
+  .markdown-paper.settings-template-preview h1 {
+    @apply mb-3 border-0 pb-0 text-[21px] leading-7;
+  }
+
+  .markdown-paper.settings-template-preview h2 {
+    @apply mt-5 mb-2.5 border-0 pb-0 text-[17px] leading-6;
+  }
+
+  .markdown-paper.settings-template-preview h3 {
+    @apply mt-4 mb-2 text-[14px] leading-5;
+  }
+
+  .markdown-paper.settings-template-preview p {
+    @apply mb-3;
+  }
+
+  .markdown-paper.settings-template-preview ul,
+  .markdown-paper.settings-template-preview ol {
+    @apply mt-2 mb-4;
+  }
+
+  .markdown-paper.settings-template-preview li {
+    @apply my-1.5;
+  }
+
+  .markdown-paper.settings-template-preview blockquote {
+    @apply my-3 pl-3.5;
+  }
+
+  .markdown-paper.settings-template-preview pre {
+    @apply my-3 rounded-md px-3 py-2.5;
+  }
+
+  .markdown-paper.settings-template-preview > :last-child {
+    @apply mb-0;
+  }
+
+  .markdown-paper .tableWrapper {
+    @apply my-6 overflow-x-auto;
+  }
+
+  .markdown-paper .markra-table-controls-wrapper {
+    /* Center add controls against the table viewport, excluding the asymmetric control gutters. */
+    --markra-table-control-inline-center-offset: -1.125rem;
+    --markra-table-control-block-center-offset: -0.25rem;
+    @apply relative overflow-visible pt-7 pr-9 pb-9;
+  }
+
+  .markdown-paper .markra-table-scroll {
+    @apply overflow-x-auto;
+  }
+
+  .markdown-paper table {
+    @apply my-6 w-full border-collapse overflow-hidden text-left text-[0.95em] leading-[1.55];
+    table-layout: fixed;
+  }
+
+  .markdown-paper .markra-table-scroll > table {
+    @apply my-0;
+  }
+
+  .markdown-paper .markra-table-controls-wrapper[data-width-mode="auto"] .markra-table-scroll > table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: auto;
+  }
+
+  .markdown-paper .markra-table-controls-wrapper[data-width-mode="auto"][data-table-alignment="center"]
+    .markra-table-scroll
+    > table {
+    margin-inline: auto;
+  }
+
+  .markdown-paper .markra-table-controls-wrapper[data-width-mode="auto"][data-table-alignment="right"]
+    .markra-table-scroll
+    > table {
+    margin-left: auto;
+  }
+
+  .markdown-paper[data-editor-theme="github"] .tableWrapper,
+  .markdown-paper[data-editor-theme="github-dark"] .tableWrapper {
+    margin-block: 1rem;
+  }
+
+  .markdown-paper[data-editor-theme="github"] .markra-table-controls-wrapper,
+  .markdown-paper[data-editor-theme="github-dark"] .markra-table-controls-wrapper {
+    --markra-table-control-inline-center-offset: 0rem;
+    --markra-table-control-block-center-offset: 0rem;
+    padding: 0;
+  }
+
+  .markdown-paper[data-editor-theme="github"] table,
+  .markdown-paper[data-editor-theme="github-dark"] table {
+    font-size: 1em;
+    font-variant: tabular-nums;
+    line-height: 1.5;
+  }
+
+  .markdown-paper th,
+  .markdown-paper td {
+    @apply border border-(--border-strong) px-3 py-2 align-top;
+    border-color: var(--editor-border-strong);
+  }
+
+  .markdown-paper[data-editor-theme="github"] th,
+  .markdown-paper[data-editor-theme="github"] td,
+  .markdown-paper[data-editor-theme="github-dark"] th,
+  .markdown-paper[data-editor-theme="github-dark"] td {
+    padding: 6px 13px;
+    border-color: var(--editor-border);
+  }
+
+  .markdown-paper .markra-table-controls-wrapper[data-width-mode="auto"] .markra-table-scroll th,
+  .markdown-paper .markra-table-controls-wrapper[data-width-mode="auto"] .markra-table-scroll td {
+    max-width: 32rem;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .markdown-paper th {
+    @apply bg-(--bg-secondary) text-(--text-heading) font-[650];
+    background: var(--editor-bg-secondary);
+    color: var(--editor-text-heading);
+  }
+
+  .markdown-paper[data-editor-theme="github"] th,
+  .markdown-paper[data-editor-theme="github-dark"] th {
+    font-weight: 600;
+  }
+
+  .markdown-paper td {
+    @apply bg-(--bg-primary);
+    background: var(--editor-paper-bg);
+  }
+
+  .markdown-paper tbody tr:nth-child(even) td {
+    @apply bg-(--bg-secondary);
+    background: var(--editor-bg-secondary);
+  }
+
+  .markdown-paper tbody tr:first-child:has(th) ~ tr:nth-child(even) td {
+    @apply bg-(--bg-primary);
+    background: var(--editor-paper-bg);
+  }
+
+  .markdown-paper tbody tr:first-child:has(th) ~ tr:nth-child(odd) td {
+    @apply bg-(--bg-secondary);
+    background: var(--editor-bg-secondary);
+  }
+
+  .markdown-paper th p,
+  .markdown-paper td p {
+    @apply m-0;
+  }
+
+  .markdown-paper .markra-table-control {
+    @apply absolute inline-flex size-6 cursor-pointer items-center justify-center rounded-full border border-(--border-default) p-0 text-[18px] leading-none font-[420] transition-[opacity,color,background-color,border-color,box-shadow,scale] duration-150 ease-out hover:border-(--border-strong) hover:bg-(--bg-hover) hover:text-(--text-heading) focus-visible:border-(--border-strong) focus-visible:bg-(--bg-hover) focus-visible:text-(--text-heading) focus-visible:outline-none;
+    background: color-mix(in srgb, var(--bg-primary) 94%, var(--bg-secondary));
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.08),
+      0 1px 2px rgba(0, 0, 0, 0.08);
+    color: var(--text-secondary);
+    opacity: 0;
+    pointer-events: none;
+    scale: 0.9;
+  }
+
+  .markdown-paper .markra-table-controls-wrapper:hover .markra-table-control,
+  .markdown-paper .markra-table-controls-wrapper:focus-within .markra-table-control {
+    opacity: 1;
+    pointer-events: auto;
+    scale: 1;
+  }
+
+  .markdown-paper .markra-table-control:hover,
+  .markdown-paper .markra-table-control:focus-visible {
+    box-shadow:
+      0 12px 30px rgba(0, 0, 0, 0.12),
+      0 0 0 3px color-mix(in srgb, var(--text-secondary) 14%, transparent);
+  }
+
+  .markdown-paper .markra-table-fragment-merge {
+    @apply relative z-20 h-0 w-full overflow-visible;
+    color: var(--editor-text-secondary);
+    pointer-events: none;
+  }
+
+  .markdown-paper .markra-table-fragment-merge-button {
+    @apply absolute top-0 left-0 inline-flex size-6 cursor-pointer items-center justify-center overflow-visible rounded-[7px] border p-0 text-xs font-semibold whitespace-nowrap focus-visible:outline-none;
+    border-color: color-mix(in srgb, var(--editor-border-strong) 78%, transparent);
+    background: color-mix(in srgb, var(--editor-paper-bg) 94%, var(--editor-bg-secondary));
+    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.08);
+    color: var(--editor-text-secondary);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-1.5rem, 0.125rem) scale(0.92);
+    transition:
+      color 120ms ease-out,
+      background-color 120ms ease-out,
+      border-color 120ms ease-out,
+      box-shadow 120ms ease-out,
+      opacity 120ms ease-out,
+      transform 120ms ease-out;
+  }
+
+  .markdown-paper .markra-table-fragment-merge-button::before {
+    position: absolute;
+    inset: -0.25rem 0 -0.25rem -0.25rem;
+    content: "";
+  }
+
+  .markdown-paper .markra-table-fragment-merge:has(+ p:hover) .markra-table-fragment-merge-button,
+  .markdown-paper .markra-table-fragment-merge:focus-within .markra-table-fragment-merge-button,
+  .markdown-paper .markra-table-fragment-merge-button:hover,
+  .markdown-paper .markra-table-fragment-merge-button:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-1.5rem, 0.125rem) scale(1);
+  }
+
+  .markdown-paper .markra-table-fragment-merge-button:hover,
+  .markdown-paper .markra-table-fragment-merge-button:focus-visible {
+    border-color: var(--editor-border-strong);
+    background: var(--editor-bg-secondary);
+    box-shadow:
+      0 3px 9px rgba(0, 0, 0, 0.09),
+      0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--editor-text-heading);
+  }
+
+  .markdown-paper .markra-table-fragment-merge-icon {
+    @apply size-3.5 shrink-0;
+    pointer-events: none;
+  }
+
+  .markdown-paper .markra-table-fragment-merge-label {
+    @apply absolute left-1 rounded-[7px] px-2 py-1 text-[11px] leading-tight font-medium;
+    bottom: calc(100% + 0.5rem);
+    background: var(--editor-text-heading);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.16);
+    color: var(--editor-paper-bg);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(0.125rem);
+    transition:
+      opacity 120ms ease-out,
+      transform 120ms ease-out,
+      visibility 0ms linear 120ms;
+    visibility: hidden;
+  }
+
+  .markdown-paper .markra-table-fragment-merge-label::after {
+    position: absolute;
+    top: 100%;
+    left: 0.625rem;
+    border: 0.25rem solid transparent;
+    border-top-color: var(--editor-text-heading);
+    content: "";
+  }
+
+  .markdown-paper .markra-table-fragment-merge-button:hover .markra-table-fragment-merge-label,
+  .markdown-paper .markra-table-fragment-merge-button:focus-visible .markra-table-fragment-merge-label {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0ms;
+    visibility: visible;
+  }
+
+  .markdown-paper .cm-content[contenteditable="false"] .markra-table-fragment-merge {
+    display: none;
+  }
+
+  .markdown-paper .markra-table-delete-control {
+    @apply hover:border-red-400/70 hover:bg-red-500/10 hover:text-red-600 focus-visible:border-red-400/70 focus-visible:bg-red-500/10 focus-visible:text-red-600;
+    transform: translate(-50%, -50%);
+  }
+
+  .markdown-paper .markra-table-delete-control:hover,
+  .markdown-paper .markra-table-delete-control:focus-visible {
+    box-shadow:
+      0 12px 30px rgba(0, 0, 0, 0.12),
+      0 0 0 3px color-mix(in srgb, oklch(63.7% 0.237 25.331) 14%, transparent);
+  }
+
+  .markdown-paper .markra-table-delete-column {
+    @apply z-10;
+  }
+
+  .markdown-paper .markra-table-delete-row {
+    @apply z-10;
+  }
+
+  .markdown-paper .markra-table-align-controls {
+    @apply absolute left-1.5 z-10 flex items-center gap-0.5;
+    height: 24px;
+    top: 0 !important;
+  }
+
+  .markdown-paper .markra-table-size-controls {
+    @apply relative flex items-center;
+  }
+
+  .markdown-paper .markra-table-size-button {
+    @apply static size-6 rounded-md border-transparent text-[0] shadow-none hover:border-(--border-default) focus-visible:border-(--border-default);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .markdown-paper .markra-table-size-button:hover,
+  .markdown-paper .markra-table-size-button:focus-visible,
+  .markdown-paper .markra-table-size-button[aria-expanded="true"] {
+    background: var(--bg-hover);
+    box-shadow: none;
+    color: var(--text-heading);
+  }
+
+  .markdown-paper .markra-table-size-icon {
+    @apply grid size-4 grid-cols-2 gap-0.75;
+  }
+
+  .markdown-paper .markra-table-size-icon-square {
+    @apply block rounded-[1px] border border-current;
+  }
+
+  .markra-table-size-popover {
+    @apply fixed z-70 rounded-lg border border-(--border-default) p-3;
+    background: color-mix(in srgb, var(--bg-primary) 98%, var(--bg-secondary));
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.16),
+      0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .markra-table-size-grid {
+    @apply grid gap-1;
+    grid-template-columns: repeat(8, 0.875rem);
+  }
+
+  .markra-table-size-cell {
+    @apply size-3.5 rounded-[2px] border border-(--border-default) p-0 transition-[background-color,border-color] duration-100 ease-out;
+    background: var(--bg-secondary);
+  }
+
+  .markra-table-size-cell:hover,
+  .markra-table-size-cell:focus-visible {
+    @apply outline-none;
+    border-color: var(--text-secondary);
+  }
+
+  .markra-table-size-cell-active {
+    background: color-mix(in srgb, var(--text-secondary) 46%, var(--bg-secondary));
+    border-color: color-mix(in srgb, var(--text-secondary) 66%, var(--border-default));
+  }
+
+  .markra-table-size-footer {
+    @apply mt-3 flex items-center justify-center gap-2 border-t border-(--border-default) pt-3;
+  }
+
+  .markra-table-size-input {
+    @apply h-7 w-10 rounded-sm border border-(--border-default) bg-(--bg-primary) px-1 text-center text-sm leading-none text-(--text-primary) outline-none focus-visible:border-(--border-strong);
+  }
+
+  .markra-table-size-input::-webkit-outer-spin-button,
+  .markra-table-size-input::-webkit-inner-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  .markra-table-size-input[type="number"] {
+    appearance: textfield;
+  }
+
+  .markra-table-size-separator {
+    @apply text-sm text-(--text-secondary);
+  }
+
+  .markdown-paper .markra-table-align-button,
+  .markdown-paper .markra-table-width-button {
+    @apply static size-6 rounded-md border-transparent text-[0] shadow-none hover:border-(--border-default) focus-visible:border-(--border-default);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .markdown-paper .markra-table-align-button:hover,
+  .markdown-paper .markra-table-align-button:focus-visible,
+  .markdown-paper .markra-table-align-button[aria-pressed="true"],
+  .markdown-paper .markra-table-width-button:hover,
+  .markdown-paper .markra-table-width-button:focus-visible,
+  .markdown-paper .markra-table-width-button[aria-pressed="true"] {
+    background: var(--bg-hover);
+    box-shadow: none;
+    color: var(--text-heading);
+  }
+
+  .markdown-paper .markra-table-width-button {
+    @apply text-(--text-secondary);
+  }
+
+  .markdown-paper .markra-table-width-button[aria-pressed="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .markdown-paper .markra-table-width-icon {
+    @apply flex items-center gap-px;
+    width: 1.125rem;
+    height: 0.875rem;
+  }
+
+  .markdown-paper .markra-table-width-edge {
+    @apply h-3 w-px rounded-full bg-current;
+  }
+
+  .markdown-paper .markra-table-width-arrow {
+    @apply h-px flex-1 bg-current;
+    position: relative;
+  }
+
+  .markdown-paper .markra-table-width-arrow::before,
+  .markdown-paper .markra-table-width-arrow::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    border-color: currentColor;
+    border-style: solid;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .markdown-paper .markra-table-width-arrow::before {
+    left: 0;
+    border-width: 0 0 1px 1px;
+  }
+
+  .markdown-paper .markra-table-width-arrow::after {
+    right: 0;
+    border-width: 1px 1px 0 0;
+  }
+
+  .markdown-paper .markra-table-width-letter {
+    font-size: 0.55rem;
+    font-weight: 720;
+    line-height: 1;
+  }
+
+  .markdown-paper .markra-table-delete-table {
+    @apply static size-6 rounded-md border-transparent text-[0] shadow-none;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-secondary);
+  }
+
+  .markdown-paper .markra-table-delete-table:hover,
+  .markdown-paper .markra-table-delete-table:focus-visible {
+    background: color-mix(in srgb, oklch(63.7% 0.237 25.331) 10%, transparent);
+    border-color: color-mix(in srgb, oklch(63.7% 0.237 25.331) 70%, transparent);
+    box-shadow: none;
+    color: oklch(57.7% 0.245 27.325);
+  }
+
+  .markdown-paper .markra-table-align-icon {
+    @apply flex w-3.5 flex-col gap-0.75;
+  }
+
+  .markdown-paper .markra-table-align-icon-line {
+    @apply block h-0.5 rounded-full bg-current;
+  }
+
+  .markdown-paper .markra-table-align-icon-line:nth-child(1) {
+    width: 0.875rem;
+  }
+
+  .markdown-paper .markra-table-align-icon-line:nth-child(2) {
+    width: 0.625rem;
+  }
+
+  .markdown-paper .markra-table-align-icon-line:nth-child(3) {
+    width: 0.75rem;
+  }
+
+  .markdown-paper .markra-table-align-icon-left .markra-table-align-icon-line {
+    @apply mr-auto;
+  }
+
+  .markdown-paper .markra-table-align-icon-center .markra-table-align-icon-line {
+    @apply mx-auto;
+  }
+
+  .markdown-paper .markra-table-align-icon-right .markra-table-align-icon-line {
+    @apply ml-auto;
+  }
+
+  .markdown-paper .markra-table-add-column {
+    @apply right-1.5 -translate-y-1/2;
+    top: calc(50% + var(--markra-table-control-block-center-offset));
+  }
+
+  .markdown-paper .markra-table-add-row {
+    @apply -bottom-3 -translate-x-1/2;
+    left: calc(50% + var(--markra-table-control-inline-center-offset));
+  }
+
+  .markdown-paper .markra-lucide-icon {
+    pointer-events: none;
+  }
+
+  .markdown-paper .markra-table-control-icon {
+    @apply size-3.5 shrink-0;
+  }
+
+  .markdown-paper a {
+    @apply text-(--editor-link-color) underline underline-offset-2;
+    cursor: var(--editor-text-cursor);
+    -webkit-user-drag: none;
+    user-select: text;
+  }
+
+  .markdown-paper .markra-live-link-label {
+    @apply text-(--editor-link-color) underline underline-offset-2;
+    cursor: var(--editor-text-cursor);
+    -webkit-user-drag: none;
+    user-select: text;
+  }
+
+  .markdown-paper .markra-live-link-source-label {
+    @apply text-(--editor-link-color) underline underline-offset-2;
+    cursor: var(--editor-text-cursor);
+  }
+
+  .markdown-paper .cm-markra-link-source,
+  .markdown-paper .cm-markra-link-source * {
+    color: var(--editor-markdown-syntax-color) !important;
+    text-decoration: none !important;
+  }
+
+  .markdown-paper .cm-markra-link-source-label {
+    @apply underline underline-offset-2;
+    color: var(--editor-link-color) !important;
+    cursor: var(--editor-text-cursor);
+  }
+
+  .markdown-paper a[href]::after,
+  .markdown-paper .markra-live-link-label::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  .markdown-paper sup[data-type="footnote_reference"] {
+    color: var(--editor-link-color);
+    cursor: help;
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .markdown-paper .markra-footnote-preview {
+    position: fixed;
+    z-index: 80;
+    max-width: min(20rem, calc(100vw - 1.5rem));
+    border: 1px solid var(--editor-border);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--editor-paper-bg) 96%, transparent);
+    padding: 0.625rem 0.75rem;
+    color: var(--editor-text-primary);
+    font-family: var(--editor-font-family);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+    white-space: pre-wrap;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+  }
+
+  .markdown-paper .markra-live-link-icon {
+    @apply inline-block text-(--editor-link-color);
+    margin-left: 0.18em;
+    pointer-events: none;
+    text-decoration: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .markdown-paper .markra-live-link-icon::before {
+    content: "↗";
+    display: inline-block;
+    transform: translateY(-0.08em);
+    font-size: 0.72em;
+    font-weight: 650;
+    line-height: 1;
+    opacity: 0.7;
+  }
+
+  .markdown-paper .markra-live-link-icon + .markra-live-link-icon {
+    @apply hidden;
+  }
+
+  .markdown-paper .cm-markra-link-icon {
+    @apply inline-block text-(--editor-link-color);
+    margin-left: 0.18em;
+    pointer-events: none;
+    text-decoration: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .markdown-paper .cm-markra-link-icon::before {
+    content: "↗";
+    display: inline-block;
+    transform: translateY(-0.08em);
+    font-size: 0.72em;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.7;
+  }
+
+  .markra-document-link-menu {
+    @apply fixed z-[60] min-w-60 max-w-[22rem] rounded-lg border border-(--border-default) bg-(--bg-primary) p-1 shadow-(--ai-command-expanded-shadow);
+  }
+
+  .markra-document-link-option {
+    @apply flex cursor-pointer flex-col gap-0.5 rounded-md px-2.5 py-1.5 text-left;
+  }
+
+  .markra-document-link-option[aria-selected="true"] {
+    @apply bg-(--bg-hover);
+  }
+
+  .markra-document-link-title {
+    @apply truncate text-sm font-medium leading-5 text-(--text-heading);
+  }
+
+  .markra-document-link-path {
+    @apply truncate text-xs leading-4 text-(--text-secondary);
+  }
+
+  .markdown-paper .markra-html-node {
+    @apply max-w-full outline-none;
+    white-space: normal;
+  }
+
+  .markdown-paper .markra-html-node:has(table) {
+    @apply overflow-x-auto;
+    /* A wide table must scroll here instead of setting CodeMirror's minimum content width. */
+    contain: inline-size;
+  }
+
+  .markdown-paper .markra-html-node table {
+    table-layout: auto;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .markdown-paper .markra-html-node img {
+    @apply m-0 inline-block max-w-full rounded-none border-0 align-middle;
+  }
+
+  .markdown-paper .markra-html-node:has(.cm-markra-html-table) {
+    overflow: visible;
+  }
+
+  .markdown-paper .markra-table-extra-control {
+    @apply relative rounded-md;
+    position: static;
+  }
+
+  .markdown-paper .cm-markra-html-table-grid {
+    @apply relative pt-5;
+  }
+
+  .markdown-paper .cm-markra-html-table table {
+    @apply my-0;
+  }
+
+  .markdown-paper .cm-markra-html-cell-content {
+    min-width: 3rem;
+    outline: none;
+  }
+
+  .markdown-paper .cm-markra-html-cell-content:focus {
+    box-shadow: inset 0 0 0 2px currentColor;
+  }
+
+  .markdown-paper .cm-markra-html-table [data-selected] {
+    background: color-mix(in srgb, var(--accent) 10%, var(--editor-paper-bg));
+  }
+
+  .markdown-paper .cm-markra-html-column-resize {
+    /* Keep drag targets above cells so invisible boundaries never intercept a merged cell's clicks. */
+    @apply absolute top-0 z-10 h-5 w-2 cursor-col-resize touch-none;
+    transform: translateX(-50%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .markdown-paper .cm-markra-html-table:hover .cm-markra-html-column-resize,
+  .markdown-paper .cm-markra-html-table:focus-within .cm-markra-html-column-resize {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .markdown-paper .cm-markra-html-column-resize::after {
+    content: "";
+    @apply absolute inset-y-1 left-1/2 w-px;
+    background: var(--editor-border-strong);
+  }
+
+  .markdown-paper .cm-markra-html-column-resize:last-child {
+    transform: translateX(-100%);
+  }
+
+  .markdown-paper .cm-markra-html-column-resize:hover,
+  .markdown-paper .cm-markra-html-column-resize:focus-visible {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    outline: 1px solid var(--accent);
+    outline-offset: -3px;
+  }
+
+  .markdown-paper .cm-markra-html-resizing {
+    @apply cursor-col-resize select-none;
+  }
+
+  .markdown-paper .markra-html-node pre {
+    white-space: pre-wrap;
+  }
+
+  .markdown-paper .markra-html-node-source {
+    @apply relative z-10 block min-h-24 w-full resize-y rounded-none border-0 bg-transparent px-3 py-3 font-mono text-[0.9em] leading-5 text-transparent outline-none;
+    -webkit-text-fill-color: transparent;
+    box-shadow: none;
+    caret-color: var(--text-primary);
+    cursor: var(--editor-text-cursor);
+  }
+
+  .markdown-paper .markra-html-node-source:focus {
+    @apply border-0 outline-none;
+    box-shadow: none;
+  }
+
+  .markdown-paper .markra-html-node-source::selection {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    -webkit-text-fill-color: transparent;
+  }
+
+  .markdown-paper .markra-html-node-source-layer {
+    @apply relative;
+  }
+
+  .markdown-paper .markra-html-node-highlight {
+    @apply pointer-events-none absolute inset-0 z-0 m-0 overflow-hidden whitespace-pre px-3 py-3 font-mono text-[0.9em] leading-5 text-(--text-primary);
+  }
+
+  .markdown-paper .markra-html-node-highlight code {
+    @apply font-mono;
+  }
+
+  .markdown-paper .markra-html-token-tag {
+    color: oklch(45% 0.16 145);
+  }
+
+  .markdown-paper .markra-html-token-attr {
+    color: oklch(43% 0.15 258);
+  }
+
+  .markdown-paper .markra-html-token-string {
+    color: oklch(42% 0.14 29);
+  }
+
+  .markdown-paper .markra-html-token-comment {
+    color: var(--text-tertiary);
+  }
+
+  .markdown-paper .markra-html-node-editor {
+    @apply relative my-5 w-full bg-[color:color-mix(in_oklab,var(--bg-secondary)_70%,var(--bg-primary))] pt-6 text-(--text-primary);
+  }
+
+  .markdown-paper .markra-html-node-editor-toolbar {
+    @apply absolute top-0 right-0 z-10 flex h-7 items-center bg-[color:color-mix(in_oklab,var(--bg-secondary)_82%,var(--bg-primary))] text-[0.78em] leading-none text-(--text-secondary);
+  }
+
+  .markdown-paper .markra-html-node-editor-label {
+    @apply px-2 font-[520] tracking-normal;
+  }
+
+  .markdown-paper .markra-html-node-editor-apply {
+    @apply flex h-7 w-8 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-[1em] font-[760] text-(--text-heading) outline-none transition-colors duration-150 ease-out hover:bg-(--bg-hover) focus-visible:bg-(--bg-hover);
+  }
+
+  .markdown-paper img:not(.cm-widgetBuffer) {
+    @apply my-6 block max-w-full rounded-[3px] border border-(--border-default);
+  }
+
+  .markdown-paper .cm-markra-table img.cm-markra-table-image {
+    @apply my-1 max-h-48 border-0;
+    object-fit: contain;
+  }
+
+  .markdown-paper .cm-line.cm-markra-image-line {
+    line-height: 0 !important;
+  }
+
+  .markdown-paper .cm-line.cm-markra-image-line > .markra-image-node {
+    display: inline-block;
+    width: 100%;
+    vertical-align: top;
+  }
+
+  .markdown-paper .markra-image-node {
+    @apply block max-w-full outline-none;
+    line-height: 1.65;
+    -webkit-user-drag: none;
+    user-select: text;
+  }
+
+  .markdown-paper .markra-image-node.markra-image-node-selected {
+    outline: 2px solid #8cf;
+    outline-offset: 3px;
+  }
+
+  .markdown-paper .markra-image-node-source-row {
+    @apply m-0 flex w-full min-w-0 items-center gap-1.5 p-0 text-(--text-primary);
+  }
+
+  .markdown-paper .markra-image-node-source-icon {
+    @apply shrink-0 text-(--text-secondary);
+  }
+
+  .markdown-paper .markra-image-node-source {
+    @apply m-0 block w-full min-w-0 appearance-none rounded-none border-0 bg-transparent p-0 font-mono text-(--text-primary) outline-none;
+    box-shadow: none;
+    cursor: var(--editor-text-cursor);
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5rem;
+  }
+
+  .markdown-paper .markra-image-node-source:focus {
+    @apply border-0 outline-none;
+    box-shadow: none;
+  }
+
+  .markdown-paper .markra-image-frame {
+    @apply relative inline-block max-w-full align-top;
+    line-height: 0;
+  }
+
+  .markdown-paper .markra-image-frame > img {
+    @apply my-0 border-0;
+    display: block;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  .markdown-paper .markra-image-viewer-button {
+    @apply absolute top-2 right-2 z-[3] grid size-7 cursor-pointer place-items-center rounded-md border border-(--border-default) p-0 outline-none transition-[opacity,transform,color,background-color,border-color,box-shadow] duration-150 ease-out;
+    background: var(--editor-code-control-bg);
+    border-color: var(--editor-border);
+    color: var(--editor-text-secondary);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-0.125rem);
+  }
+
+  .markdown-paper .markra-image-frame:hover .markra-image-viewer-button,
+  .markdown-paper .markra-image-viewer-button:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .markdown-paper .markra-image-viewer-button:hover {
+    background: var(--editor-bg-secondary);
+    border-color: var(--editor-border-strong);
+    color: var(--editor-text-heading);
+  }
+
+  .markdown-paper .markra-image-viewer-button:focus-visible {
+    background: var(--editor-bg-secondary);
+    border-color: var(--editor-border-strong);
+    color: var(--editor-text-heading);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .markdown-paper .markra-image-upload-placeholder {
+    @apply my-6 inline-flex min-h-18 max-w-full items-center gap-2 rounded-[3px] border border-dashed border-(--border-default) bg-(--bg-secondary) px-3.5 py-3 text-[0.92em] font-medium text-(--text-secondary);
+    cursor: progress;
+    user-select: none;
+    vertical-align: middle;
+  }
+
+  .markdown-paper .markra-image-upload-placeholder-spinner {
+    @apply block size-4 shrink-0 rounded-full border-2 border-(--border-default);
+    animation: markra-ai-preview-spin 0.82s linear infinite;
+    border-top-color: var(--accent);
+  }
+
+  .markdown-paper .markra-image-upload-placeholder-label {
+    @apply min-w-0 truncate;
+  }
+
+  .markdown-paper .markra-image-node-source::selection {
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+
+  .markdown-paper .markra-image-node-source-invalid .markra-image-node-source {
+    @apply text-red-600;
+  }
+
+  .markdown-paper .markra-live-image-preview {
+    @apply my-6 block max-w-full rounded-[3px] border border-(--border-default);
+  }
+
+  .markdown-paper .markra-math-render {
+    color: var(--text-primary);
+    letter-spacing: 0;
+    cursor: var(--editor-text-cursor);
+    user-select: text;
+  }
+
+  .markdown-paper .markra-math-render .katex {
+    font-size: 1em;
+  }
+
+  .markdown-paper .markra-math-render-inline {
+    display: inline-flex;
+    margin: 0 0.08em;
+    vertical-align: -0.08em;
+  }
+
+  .markdown-paper .markra-math-render-display {
+    display: block;
+    max-width: 100%;
+    margin: 0.85em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    text-align: center;
+  }
+
+  .markdown-paper .cm-content .markra-math-render-display {
+    --markra-math-block-spacing: 0.85em;
+  }
+
+  .markdown-paper .markra-math-render-display .katex-display {
+    margin: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .markdown-paper .markra-math-render-invalid {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    color: var(--text-secondary);
+  }
+
+  .markdown-paper p:has(.markra-math-source-active-display) {
+    margin-top: 0.85em;
+    margin-bottom: 0.85em;
+  }
+
+  .markdown-paper .markra-math-source-active {
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    color: var(--editor-text-primary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.95em;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .markdown-paper .markra-math-source-active[data-type="hardbreak"] {
+    display: inline;
+    overflow: visible;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .markdown-paper .markra-math-token-delimiter {
+    color: var(--accent);
+  }
+
+  .markdown-paper .markra-math-token-command {
+    color: var(--editor-hl-keyword);
+    font-weight: 620;
+  }
+
+  .markdown-paper .markra-math-token-brace {
+    color: var(--editor-hl-type);
+  }
+
+  .markdown-paper .markra-math-token-operator {
+    color: var(--editor-hl-number);
+  }
+
+  .markdown-paper .markra-math-render-active-preview {
+    margin-top: 1em;
+    opacity: 0.96;
+  }
+
+  .markdown-paper .markra-math-macro-fold {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, var(--editor-border) 72%, transparent);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--editor-text-primary) 4%, transparent);
+    color: var(--editor-text-secondary);
+    cursor: pointer;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.72em;
+    line-height: 1.45;
+    padding: 0.08rem 0.42rem;
+    user-select: none;
+    vertical-align: 0.08em;
+  }
+
+  .markdown-paper .markra-math-macro-fold:hover {
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--editor-border));
+    color: var(--editor-text-primary);
+  }
+
+  .markdown-paper .markra-math-macro-fold:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 64%, transparent);
+    outline-offset: 2px;
+  }
+
+  .markdown-paper strong {
+    @apply text-(--text-heading) font-[760];
+  }
+
+  .markdown-paper em {
+    @apply italic;
+    font-synthesis: style;
+  }
+
+  .markdown-paper .markra-md-delimiter {
+    @apply text-(--editor-markdown-syntax-color);
+  }
+
+  .markdown-paper .markra-md-hidden-delimiter {
+    display: inline-block;
+    width: 0;
+    max-width: 0;
+    overflow: hidden;
+    color: transparent;
+    vertical-align: baseline;
+    white-space: pre;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .markdown-paper .markra-math-source-hidden-display.markra-md-hidden-delimiter {
+    display: inline-block;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    z-index: 1;
+    width: max-content;
+    max-width: 100%;
+    height: 1.35em;
+    overflow: hidden;
+    color: transparent;
+    line-height: 1.35;
+    pointer-events: none;
+    white-space: pre;
+    transform: translateY(-50%);
+    -webkit-text-fill-color: transparent;
+    caret-color: var(--accent);
+  }
+
+  .markdown-paper .markra-live-mark-strong {
+    @apply text-(--text-heading) font-[760];
+  }
+
+  .markdown-paper .markra-live-mark-emphasis {
+    @apply italic;
+    /* CJK system fonts often lack italic faces, so live Markdown needs local style synthesis. */
+    font-synthesis: style;
+  }
+
+  .markdown-paper .markra-live-mark-strikethrough {
+    @apply line-through;
+  }
+
+  .markdown-paper .markra-live-mark-highlight {
+    @apply rounded-[3px] px-[0.12em] py-[0.02em];
+    background: color-mix(in srgb, #d4a72c 28%, transparent);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  .markdown-paper .markra-live-mark-inlineCode {
+    @apply rounded-[3px] border border-(--border-default) bg-(--bg-code) px-[0.28em] py-[0.12em] text-[0.88em] text-(--text-primary);
+    font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  }
+
+  .markdown-paper code .markra-live-mark-inlineCode {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+
+  .markdown-paper .markra-ai-preview-delete {
+    @apply rounded-[3px] text-(--text-secondary) line-through decoration-red-500/50 decoration-1;
+    background: color-mix(in srgb, oklch(63.7% 0.237 25.331) 7%, transparent);
+  }
+
+  .markdown-paper .markra-ai-selection-hold {
+    @apply rounded-[3px];
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .markdown-paper .markra-ai-preview-widget {
+    @apply relative my-1 inline-flex max-w-full items-start align-baseline;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    font-style: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
+    text-decoration: inherit;
+    text-transform: inherit;
+    white-space: normal;
+    isolation: isolate;
+    z-index: 30;
+  }
+
+  .markdown-paper .markra-ai-preview-widget-block {
+    @apply my-4 flex w-full max-w-full items-start;
+    font-size: 16px;
+    font-weight: 520;
+    line-height: 1.65;
+  }
+
+  .markdown-paper .markra-ai-preview-scope {
+    @apply mr-1 inline-flex shrink-0 items-center rounded border border-(--border-default) bg-(--bg-secondary) px-1.5 py-0.5 text-(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .markdown-paper .markra-ai-preview-widget-block .markra-ai-preview-scope {
+    @apply mt-0;
+  }
+
+  .markdown-paper .markra-ai-preview-insert {
+    @apply inline-block max-w-full rounded-[3px];
+    background: color-mix(in srgb, oklch(69.6% 0.17 162.48) 9%, transparent);
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    font-style: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
+    text-decoration: inherit;
+    text-transform: inherit;
+    white-space: pre-wrap;
+  }
+
+  .markdown-paper .markra-ai-preview-insert-rendered {
+    @apply block min-w-0 overflow-x-auto;
+    font-weight: initial;
+    text-decoration: none;
+    white-space: normal;
+  }
+
+  .markdown-paper .markra-ai-preview-insert-rendered table {
+    @apply my-0;
+  }
+
+  .markdown-paper .markra-ai-preview-actions {
+    @apply absolute right-0 bottom-[calc(100%+6px)] inline-flex items-center gap-0.5 rounded-md border border-(--border-default) bg-(--bg-primary) p-0.5 shadow-[var(--ai-preview-action-shadow)];
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    z-index: 60;
+  }
+
+  .markdown-paper .markra-ai-preview-actions-quiet {
+    @apply scale-[0.98] border-transparent transition-[opacity,transform,border-color,background-color] duration-150 ease-out;
+    opacity: 0.58;
+    background: color-mix(in srgb, var(--bg-primary) 92%, var(--bg-secondary));
+    box-shadow: var(--ai-preview-action-quiet-shadow);
+    transform-origin: right bottom;
+  }
+
+  .markdown-paper .markra-ai-preview-widget:hover .markra-ai-preview-actions-quiet,
+  .markdown-paper .markra-ai-preview-widget:focus-within .markra-ai-preview-actions-quiet {
+    @apply scale-100 border-(--border-default);
+    opacity: 1;
+  }
+
+  .markdown-paper .markra-ai-preview-action {
+    @apply inline-flex size-6 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-(--text-secondary) transition-colors duration-150 ease-out hover:bg-(--bg-hover) hover:text-(--text-heading) focus-visible:bg-(--bg-hover) focus-visible:text-(--text-heading) focus-visible:outline-none;
+  }
+
+  .markdown-paper .markra-ai-preview-apply {
+    @apply text-(--accent) hover:bg-(--accent-soft) hover:text-(--accent-hover) focus-visible:bg-(--accent-soft) focus-visible:text-(--accent-hover);
+  }
+
+  .markdown-paper .markra-ai-preview-applying {
+    @apply cursor-default bg-(--accent-soft) text-(--accent);
+  }
+
+  .markdown-paper .markra-ai-preview-copied {
+    @apply bg-emerald-500/12 text-emerald-600 hover:bg-emerald-500/16 hover:text-emerald-700 focus-visible:bg-emerald-500/16 focus-visible:text-emerald-700;
+  }
+
+  .markdown-paper .markra-ai-preview-icon {
+    @apply pointer-events-none;
+  }
+
+  .markdown-paper .markra-ai-preview-spinner {
+    transform-origin: center;
+    animation: markra-ai-preview-spin 0.82s linear infinite;
+  }
+
+  .markdown-paper code {
+    @apply rounded-[3px] border border-(--border-default) bg-(--bg-code) px-[0.28em] py-[0.12em] text-[0.88em] text-(--text-primary);
+    font-family: var(--editor-code-font-family, Menlo, Consolas, "DejaVu Sans Mono", monospace);
+    color: oklch(40% 0.13 247);
+    background: var(--editor-inline-code-bg);
+    border-color: var(--editor-border);
+    color: var(--editor-inline-code-text);
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, oklch(69.6% 0.17 162.48) 28%, transparent);
+  }
+
+  .markdown-paper pre {
+    @apply mt-5 mb-7 overflow-auto rounded border border-(--border-default) bg-(--bg-code) px-4.5 py-4;
+    background: var(--editor-code-bg);
+    border-color: var(--editor-border);
+  }
+
+  .markdown-paper pre code {
+    @apply border-0 bg-transparent p-0;
+    color: inherit;
+    box-shadow: none;
+  }
+
+  .markdown-paper .markra-code-block {
+    @apply relative mt-5 mb-7 grid overflow-visible rounded border border-(--border-default) bg-(--bg-code);
+    background: var(--editor-code-bg);
+    border-color: var(--editor-border);
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .markdown-paper .markra-code-copy-button {
+    @apply absolute top-2 right-2 z-[3] grid size-7 cursor-pointer place-items-center rounded-md border border-(--border-default) p-0 outline-none transition-[opacity,transform,color,background-color,border-color,box-shadow] duration-150 ease-out;
+    background: var(--editor-code-control-bg);
+    border-color: var(--editor-border);
+    color: var(--editor-text-secondary);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-0.125rem);
+  }
+
+  .markdown-paper .markra-code-copy-button svg {
+    @apply absolute;
+    transition:
+      opacity 140ms ease-out,
+      transform 140ms ease-out;
+  }
+
+  .markdown-paper .markra-code-copy-check-icon {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  .markdown-paper .markra-code-block:hover .markra-code-copy-button,
+  .markdown-paper .markra-code-block:focus-within .markra-code-copy-button {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .markdown-paper .markra-code-block[data-mermaid-mode="source"] .markra-code-copy-button {
+    right: 5.75rem;
+  }
+
+  .markdown-paper .markra-code-copy-button:hover,
+  .markdown-paper .markra-code-copy-button:focus-visible {
+    background: var(--editor-bg-secondary);
+    border-color: var(--editor-border-strong);
+    color: var(--editor-text-heading);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .markdown-paper .markra-code-copy-button[data-copied="true"] {
+    background: color-mix(in srgb, oklch(69.6% 0.17 162.48) 14%, var(--editor-code-control-bg));
+    border-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 62%, var(--editor-border));
+    color: oklch(50% 0.13 151);
+  }
+
+  .markdown-paper .markra-code-copy-button[data-copied="true"] .markra-code-copy-icon {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  .markdown-paper .markra-code-copy-button[data-copied="true"] .markra-code-copy-check-icon {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .markdown-paper .markra-code-language-control {
+    @apply absolute right-0 z-[2] flex items-center justify-end pt-1.5 transition-[opacity,transform] duration-150 ease-out;
+    top: 100%;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-0.125rem);
+  }
+
+  .markdown-paper .markra-code-block:hover .markra-code-language-control {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .markdown-paper .markra-code-language-select {
+    @apply h-8 min-w-40 cursor-pointer rounded-md border border-(--border-default) bg-(--bg-primary)/96 px-3 text-[0.82rem] font-medium text-(--text-secondary) shadow-sm outline-none transition-[border-color,color,background-color,box-shadow];
+    background: var(--editor-code-control-bg);
+    border-color: var(--editor-border);
+    color: var(--editor-text-secondary);
+    max-width: min(18rem, calc(100vw - 4rem));
+    font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+    line-height: 1;
+  }
+
+  .markdown-paper .markra-code-language-select:focus {
+    @apply border-(--border-focus) bg-(--bg-primary) text-(--text-primary);
+    background: var(--editor-code-control-bg);
+    color: var(--editor-text-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-focus) 18%, transparent);
+  }
+
+  .markdown-paper .markra-code-line-numbers {
+    @apply rounded-l border-r border-(--border-default) px-3 py-4 text-right text-[0.9em] leading-[1.65] text-(--text-secondary);
+    background: var(--editor-code-line-bg);
+    border-color: var(--editor-border);
+    color: var(--editor-text-secondary);
+    font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+    user-select: none;
+  }
+
+  .markdown-paper .markra-code-line-number {
+    display: block;
+    min-width: 2ch;
+  }
+
+  .markdown-paper .markra-code-block pre {
+    @apply m-0 min-w-0 overflow-auto rounded-none border-0 bg-transparent px-4 py-4;
+  }
+
+  .markdown-paper .markra-code-block[data-mermaid-mode="preview"] {
+    display: block;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    contain: layout paint style;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .markdown-paper .cm-markra-code-top-gap:has(+ .cm-line .markra-code-block[data-mermaid-mode="preview"]) {
+    display: none;
+  }
+
+  .markdown-paper .markra-code-block[data-mermaid-mode="preview"] .markra-code-line-numbers,
+  .markdown-paper .markra-code-block[data-mermaid-mode="preview"] pre,
+  .markdown-paper .markra-code-block[data-mermaid-mode="preview"] .markra-code-copy-button,
+  .markdown-paper .markra-code-block[data-mermaid-mode="preview"] .markra-code-language-control {
+    display: none;
+  }
+
+  .markdown-paper .markra-mermaid-preview-button {
+    @apply absolute top-2 right-2 z-[3] h-7 cursor-pointer rounded-md border border-(--border-default) px-2.5 text-[0.74rem] font-medium outline-none transition-[opacity,transform,color,background-color,border-color,box-shadow] duration-150 ease-out;
+    background: var(--editor-code-control-bg);
+    border-color: var(--editor-border);
+    color: var(--editor-text-secondary);
+  }
+
+  .markdown-paper .markra-mermaid-preview-button[hidden] {
+    display: none;
+  }
+
+  .markdown-paper .markra-mermaid-preview-button:hover,
+  .markdown-paper .markra-mermaid-preview-button:focus-visible {
+    background: var(--editor-bg-secondary);
+    border-color: var(--editor-border-strong);
+    color: var(--editor-text-heading);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .markdown-paper .markra-mermaid-zoom-button {
+    @apply absolute top-4 right-2 z-[3] grid size-7 cursor-pointer place-items-center rounded-md border border-(--border-default) p-0 outline-none transition-[opacity,transform,color,background-color,border-color,box-shadow] duration-150 ease-out;
+    background: var(--editor-code-control-bg);
+    border-color: var(--editor-border);
+    color: var(--editor-text-secondary);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-0.125rem);
+  }
+
+  .markdown-paper .markra-mermaid-zoom-button[hidden] {
+    display: none;
+  }
+
+  .markdown-paper .markra-code-block[data-mermaid-mode="preview"]:hover .markra-mermaid-zoom-button {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .markdown-paper .markra-mermaid-zoom-button:hover {
+    background: var(--editor-bg-secondary);
+    border-color: var(--editor-border-strong);
+    color: var(--editor-text-heading);
+  }
+
+  .markdown-paper .markra-mermaid-zoom-button:focus-visible {
+    background: var(--editor-bg-secondary);
+    border-color: var(--editor-border-strong);
+    color: var(--editor-text-heading);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .markdown-paper .markra-mermaid-render {
+    @apply mx-4 mb-4 rounded border border-(--border-default) bg-(--bg-primary) p-4;
+    grid-column: 1 / -1;
+    border-color: var(--editor-border);
+    overflow-x: auto;
+    text-align: center;
+  }
+
+  .markdown-paper .markra-code-block[data-mermaid-mode="preview"] .markra-mermaid-render {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .markdown-paper .markra-mermaid-render[hidden],
+  .markdown-paper .markra-mermaid-render-empty {
+    display: none;
+  }
+
+  .markdown-paper .markra-mermaid-render svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  .markdown-paper .markra-mermaid-render-invalid {
+    @apply max-h-[18em] overflow-auto font-mono text-[0.86em] whitespace-pre-wrap;
+    background: color-mix(in srgb, var(--danger) 8%, var(--editor-code-bg));
+    color: var(--danger);
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+
+  .markra-media-viewer-dialog {
+    @apply fixed inset-0 z-50 grid place-items-center p-4;
+    background: color-mix(in srgb, oklch(23% 0.02 260) 72%, transparent);
+  }
+
+  .markra-media-viewer-panel {
+    @apply relative flex max-h-[88vh] w-full flex-col overflow-hidden rounded-lg border border-(--border-default) bg-(--bg-primary) shadow-2xl;
+    background: var(--editor-paper-bg, var(--bg-primary));
+    border-color: color-mix(in srgb, var(--editor-border-strong, var(--border-strong)) 82%, transparent);
+    color: var(--editor-text-primary, var(--text-primary));
+    height: min(88vh, 44rem);
+    max-width: min(92vw, 80rem);
+    min-height: min(28rem, 88vh);
+  }
+
+  .markra-media-viewer-dialog[data-fullscreen="true"] {
+    padding: 0;
+  }
+
+  .markra-media-viewer-dialog[data-fullscreen="true"] .markra-media-viewer-panel {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    min-height: 0;
+    border-width: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .markra-media-viewer-toolbar {
+    @apply relative z-[2] flex items-center justify-end gap-1 border-b border-(--border-default) px-3 py-2;
+    background: color-mix(in srgb, var(--editor-paper-bg, var(--bg-primary)) 94%, transparent);
+    border-color: color-mix(in srgb, var(--editor-border, var(--border-default)) 82%, transparent);
+  }
+
+  .markra-media-viewer-zoom-value {
+    @apply min-w-12 px-1 text-center text-[12px] leading-5 font-[650] tabular-nums text-(--text-secondary);
+    color: var(--editor-text-secondary, var(--text-secondary));
+  }
+
+  .markra-media-viewer-control-button,
+  .markra-media-viewer-close-button {
+    @apply grid size-8 cursor-pointer place-items-center rounded-md border border-(--border-default) bg-(--bg-primary) p-0 text-(--text-secondary) outline-none transition-[color,background-color,border-color,box-shadow] duration-150 ease-out;
+    background: var(--editor-code-control-bg, var(--bg-primary));
+    border-color: var(--editor-border, var(--border-default));
+    color: var(--editor-text-secondary, var(--text-secondary));
+  }
+
+  .markra-media-viewer-control-button:hover,
+  .markra-media-viewer-close-button:hover {
+    background: var(--editor-bg-secondary, var(--bg-hover));
+    border-color: var(--editor-border-strong, var(--border-strong));
+    color: var(--editor-text-heading, var(--text-heading));
+  }
+
+  .markra-media-viewer-control-button:focus-visible,
+  .markra-media-viewer-close-button:focus-visible {
+    background: var(--editor-bg-secondary, var(--bg-hover));
+    border-color: var(--editor-border-strong, var(--border-strong));
+    color: var(--editor-text-heading, var(--text-heading));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .markra-media-viewer-content {
+    @apply relative min-h-0 flex-1 overflow-hidden px-8 py-8 outline-none;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .markra-media-viewer-content:focus-visible {
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .markra-media-viewer-content[data-dragging="true"] {
+    cursor: grabbing;
+  }
+
+  .markra-media-viewer-canvas {
+    @apply flex min-h-full items-center justify-center;
+    transform-origin: center center;
+    transition: transform 90ms ease-out;
+    will-change: transform;
+  }
+
+  .markra-media-viewer-content[data-dragging="true"] .markra-media-viewer-canvas {
+    transition: none;
+  }
+
+  .markra-media-viewer-media {
+    display: block;
+    flex: 0 0 auto;
+    max-width: none;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  .markra-media-viewer-image,
+  .markdown-paper img.markra-media-viewer-image {
+    width: auto;
+    max-width: min(100%, 72rem);
+    max-height: calc(88vh - 7rem);
+    margin: 0 auto;
+    border: 0;
+    border-radius: 0;
+    object-fit: contain;
+  }
+
+  .markra-media-viewer-dialog[data-fullscreen="true"] .markra-media-viewer-image {
+    max-height: calc(100vh - 7rem);
+  }
+
+  .markdown-paper .markra-code-block code {
+    @apply block border-0 bg-transparent p-0 text-[0.9em];
+    color: var(--editor-code-text);
+    font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  .markdown-paper[data-code-block-wrap="false"] .markra-code-block pre {
+    overflow-x: auto;
+  }
+
+  .markdown-paper[data-code-block-wrap="false"] .markra-code-block code {
+    overflow-wrap: normal;
+    white-space: pre;
+  }
+
+  .markdown-paper .hljs-keyword,
+  .markdown-paper .hljs-selector-tag,
+  .markdown-paper .hljs-literal {
+    color: var(--editor-hl-keyword);
+    font-weight: 650;
+  }
+
+  .markdown-paper .hljs-string,
+  .markdown-paper .hljs-regexp,
+  .markdown-paper .hljs-addition {
+    color: var(--editor-hl-string);
+  }
+
+  .markdown-paper .hljs-number,
+  .markdown-paper .hljs-attr,
+  .markdown-paper .hljs-variable {
+    color: var(--editor-hl-number);
+  }
+
+  .markdown-paper .hljs-title,
+  .markdown-paper .hljs-function,
+  .markdown-paper .hljs-built_in {
+    color: var(--editor-hl-title);
+  }
+
+  .markdown-paper .hljs-type,
+  .markdown-paper .hljs-class .hljs-title,
+  .markdown-paper .hljs-tag,
+  .markdown-paper .hljs-name {
+    color: var(--editor-hl-type);
+  }
+
+  .markdown-paper .hljs-meta,
+  .markdown-paper .hljs-doctag,
+  .markdown-paper .hljs-section {
+    color: var(--editor-hl-meta);
+  }
+
+  .markdown-paper .hljs-symbol,
+  .markdown-paper .hljs-bullet,
+  .markdown-paper .hljs-link {
+    color: var(--editor-hl-symbol);
+  }
+
+  .markdown-paper .hljs-deletion {
+    color: var(--editor-hl-deletion);
+  }
+
+  .markdown-paper .hljs-comment,
+  .markdown-paper .hljs-quote {
+    color: var(--editor-text-secondary);
+    font-style: normal;
+  }
+
+  .markdown-paper hr {
+    @apply my-5 border-0;
+    height: 12px;
+    cursor: pointer;
+    background: linear-gradient(var(--border-default), var(--border-default)) center / 100% 1px no-repeat;
+  }
+
+  .markdown-paper hr:hover {
+    background: linear-gradient(color-mix(in srgb, var(--border-default) 72%, var(--text-secondary)), color-mix(in srgb, var(--border-default) 72%, var(--text-secondary))) center / 100% 2px no-repeat;
+  }
+
+  .ai-chat-markdown {
+    @apply text-[13px] leading-5;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .ai-chat-markdown-danger {
+    --editor-text-primary: var(--danger);
+    --editor-text-heading: var(--danger);
+    --editor-link-color: var(--danger);
+  }
+
+  .ai-chat-markdown-thinking {
+    --editor-text-primary: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+    --editor-text-heading: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+    --editor-text-secondary: color-mix(in srgb, var(--text-secondary) 58%, transparent);
+    --editor-code-text: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+    --editor-inline-code-text: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+    --editor-link-color: color-mix(in srgb, var(--link-color) 48%, var(--text-secondary));
+  }
+
+  .ai-chat-markdown-thinking strong,
+  .ai-chat-markdown-thinking b,
+  .ai-chat-markdown-thinking .markra-live-mark-strong {
+    color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+  }
+
+  .ai-chat-markdown h1,
+  .ai-chat-markdown h2,
+  .ai-chat-markdown h3,
+  .ai-chat-markdown h4,
+  .ai-chat-markdown h5,
+  .ai-chat-markdown h6 {
+    @apply mt-0 mb-2 border-0 p-0 text-[1em] leading-5 font-[700];
+  }
+
+  .ai-chat-markdown p {
+    @apply m-0 mb-2;
+  }
+
+  .ai-chat-markdown p:last-child {
+    @apply mb-0;
+  }
+
+  .ai-chat-markdown ul,
+  .ai-chat-markdown ol {
+    @apply my-2 pl-[1.2em];
+  }
+
+  .ai-chat-markdown li {
+    @apply my-1;
+  }
+
+  .ai-chat-markdown blockquote {
+    @apply my-2 pl-3;
+  }
+
+  .ai-chat-markdown table {
+    @apply my-2 text-[12px];
+  }
+
+  .ai-chat-markdown img {
+    @apply my-2 rounded-[6px];
+  }
+
+  .ai-chat-markdown pre {
+    @apply my-2 overflow-x-auto rounded-[8px] border border-(--border-default) bg-(--bg-secondary) p-3;
+  }
+
+  .markdown-paper::selection,
+  .markdown-paper *::selection {
+    background: color-mix(in srgb, var(--editor-caret-color, var(--accent)) 20%, transparent);
+  }
+
+  /* CodeMirror draws selections in a separate layer, so its focused light
+     fallback must not override the theme-aware native selection color. */
+  .markdown-paper .cm-selectionBackground {
+    background: color-mix(in srgb, var(--editor-caret-color, var(--accent)) 20%, transparent) !important;
+  }
+
+  .editor-content-slot[data-document-search-open="true"] .markdown-paper,
+  .editor-content-slot[data-document-search-open="true"] .markdown-paper *,
+  .editor-content-slot[data-document-search-open="true"] .markdown-source-paper,
+  .editor-content-slot[data-document-search-open="true"] .markdown-source-paper * {
+    caret-color: transparent !important;
+  }
+
+  .editor-content-slot[data-document-search-open="true"] .markdown-paper::selection,
+  .editor-content-slot[data-document-search-open="true"] .markdown-paper *::selection,
+  .editor-content-slot[data-document-search-open="true"] .markdown-source-paper::selection,
+  .editor-content-slot[data-document-search-open="true"] .markdown-source-paper *::selection {
+    background: transparent;
+  }
+
+  .editor-content-slot[data-document-search-open="true"] .markdown-paper .markra-math-caret-anchor,
+  .editor-content-slot[data-document-search-open="true"] .markdown-paper .markra-image-node-source-row {
+    display: none !important;
+  }
+
+  .editor-content-slot[data-document-search-open="true"] .markdown-paper .markra-image-node.markra-image-node-selected {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .ai-command-thinking-text {
+    color: color-mix(in srgb, var(--text-secondary) 68%, transparent);
+    animation: markra-ai-thinking-breathe 1.8s ease-in-out infinite;
+  }
+
+  .ai-command-inline-loading-text {
+    @apply relative inline-block max-w-full overflow-hidden font-[520];
+    color: color-mix(in srgb, var(--text-secondary) 74%, transparent);
+  }
+
+  .ai-command-inline-loading-text::after {
+    content: "";
+    position: absolute;
+    top: -0.35em;
+    bottom: -0.35em;
+    left: -0.85em;
+    width: 1.35em;
+    border-radius: 999px;
+    background: radial-gradient(
+      ellipse at center,
+      color-mix(in srgb, var(--bg-primary) 96%, transparent) 0%,
+      color-mix(in srgb, var(--bg-primary) 68%, transparent) 46%,
+      transparent 72%
+    );
+    filter: blur(10px);
+    opacity: 0;
+    transform: translateX(-80%) skewX(-10deg);
+    animation: markra-ai-inline-shimmer 1.9s cubic-bezier(0.33, 0, 0.2, 1) infinite;
+    pointer-events: none;
+  }
+
+  .ai-agent-composer-running {
+    border-color: color-mix(in srgb, var(--accent) 58%, var(--border-default));
+    box-shadow: var(--ai-command-shadow);
+  }
+
+  .ai-agent-composer-running::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--markra-ai-agent-border-angle),
+      transparent 0deg,
+      transparent 218deg,
+      color-mix(in srgb, var(--accent) 14%, transparent) 256deg,
+      color-mix(in srgb, var(--accent) 92%, var(--bg-primary)) 304deg,
+      color-mix(in srgb, var(--accent) 18%, transparent) 338deg,
+      transparent 360deg
+    );
+    animation: markra-ai-agent-border-run 1.65s linear infinite;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ai-command-thinking-text {
+      animation: none;
+      opacity: 0.68;
+    }
+
+    .ai-command-inline-loading-text::after {
+      animation: none;
+      opacity: 0;
+    }
+
+    .ai-agent-composer-running {
+      box-shadow: var(--ai-command-shadow);
+    }
+
+    .ai-agent-composer-running::before {
+      animation: none;
+    }
+
+    .markdown-paper .markra-ai-preview-spinner {
+      animation: none;
+    }
+
+    .markdown-paper .markra-image-upload-placeholder-spinner {
+      animation: none;
+    }
+  }
+}

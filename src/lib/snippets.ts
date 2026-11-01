@@ -1,7 +1,7 @@
 /**
- * Blocks that the rich-text editor cannot produce, because Toast UI has no node
- * for them. Each one is plain Markdown/HTML text, so it is inserted into the
- * Markdown source rather than into the ProseMirror document.
+ * Blocks that Markra's editor has no command for. Each one is plain
+ * Markdown/HTML text, so it is inserted at the cursor rather than through the
+ * editor's block commands.
  */
 
 export type Snippet = {

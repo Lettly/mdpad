@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CommitDialog from './components/CommitDialog'
 import FileTree from './components/FileTree'
-import MarkdownEditor, { type EditorApi, type EditorMode } from './components/MarkdownEditor'
+import MarkraEditor, { type EditorApi, type EditorMode } from './components/MarkraEditor'
 import OpenRepoDialog from './components/OpenRepoDialog'
 import TokenGate from './components/TokenGate'
 import {
@@ -17,7 +17,6 @@ import {
   type Repo,
 } from './lib/github'
 import { parseRepoLink } from './lib/githubUrl'
-import { snippetFor, snippetPayload } from './lib/snippets'
 import { buildTree, isEditable, type TreeNode } from './lib/tree'
 import { readRoute, routeToHash, type Route } from './lib/route'
 import { loadTheme, loadToken, saveTheme, saveToken, type Theme } from './lib/storage'
@@ -335,13 +334,6 @@ export default function App() {
     setMode(next)
   }
 
-  const insertSnippet = (id: string) => {
-    const snippet = snippetFor(id)
-    const api = editorApi.current
-    if (!snippet || !api) return
-    api.insertText(snippetPayload(snippet))
-  }
-
   const commit = async (message: string) => {
     const current = sessionRef.current
     if (!token || !current || !doc) return
@@ -539,11 +531,10 @@ export default function App() {
 
                 {doc && !fileError ? (
                   <div className="editor-shell">
-                    <MarkdownEditor
+                    <MarkraEditor
                       mode={mode}
-                      dark={theme === 'dark'}
+                      theme={theme}
                       value={text}
-                      onInsertSnippet={insertSnippet}
                       onChange={setText}
                       onSync={handleSync}
                       onReady={handleReady}

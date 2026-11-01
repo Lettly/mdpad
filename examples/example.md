@@ -57,7 +57,7 @@ Press <kbd>⌘</kbd> + <kbd>S</kbd> to save, and footnotes work too.[^1]
 | --- | --- | --- |
 | Tables | yes | yes |
 | Task lists | yes | yes |
-| Raw HTML | no | yes |
+| Raw HTML | yes | yes |
 
 ## Code
 
@@ -72,5 +72,5 @@ editor.setMarkdown(source, false)
 
 - Saves are plain commits: no pull request, no review.
 - If the file changed on GitHub since you opened it, the write is rejected.
-- Files with raw HTML or footnotes open in Markdown mode, because rich text would
-  drop them.
+- Raw HTML and footnotes render in the rich editor, and typing `/` on a line opens
+  the block menu.

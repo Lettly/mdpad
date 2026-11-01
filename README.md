@@ -44,22 +44,23 @@ Deep links work too, so a URL like `#/owner/repo/blob/main/README.md` opens that
 request, no review. If the file changed on GitHub in the meantime, GitHub rejects the write and
 you get a conflict error; reload and re-apply.
 
-## Advanced blocks
+## Blocks
 
-The chips at the end of the toolbar add the GitHub-flavoured blocks that have no plain rich-text
-form:
+There is no toolbar: the surface is Markra's. Typing `/` at the end of a line opens the block menu,
+which lists Markra's own commands (headings, lists, task list, quote, callout, table, code block)
+and the GitHub-flavoured blocks mdpad adds:
 
-| Chip | Inserts |
+| Entry | Inserts |
 | --- | --- |
-| Details | `<details>` + `<summary>` |
+| Collapsible section | `<details>` + `<summary>` |
 | Footnote | a `[^1]` reference and its definition |
-| Callout | `> [!NOTE]` |
-| Math | `$$ … $$` |
-| Key | `<kbd>⌘</kbd>` |
+| Math block | `$$ … $$` |
+| Keyboard key | `<kbd>⌘</kbd>` |
+| Divider | `---` |
 
-They land in the document where the cursor is. A collapsible section is an editable block: type the
-summary (Markdown works there too) and write the body as ordinary blocks. Other raw HTML renders as
-content; click it to edit the HTML behind it.
+A collapsible section is one block: the summary and the content are rendered as Markdown, and
+**Edit section** on the block opens a form for the two parts. Other raw HTML renders as content;
+click it to reveal the source in place.
 
 ## Development
 
@@ -88,7 +89,10 @@ the app. There is nothing secret in it — each visitor brings their own token.
 | `src/lib/oauth.ts` | GitHub device flow client (start, poll, cancel) |
 | `src/lib/route.ts` | Hash router, so deep links work on a static host |
 | `src/lib/tree.ts` | Flat git tree → collapsible file tree |
-| `src/components/MarkdownEditor.tsx` | Milkdown editor: rich text, with a raw Markdown escape hatch |
+| `src/components/MarkraEditor.tsx` | Mounts Markra's paper shell and editor surface, wired to mdpad's commit flow |
+| `src/markra/` | Markra's app-side editor chrome: paper surface, floating menus, plugin UI, spellcheck menu, and the stylesheet that draws all of it |
+| `src/editor/markra/` | mdpad's own editor plugins: collapsible sections, extra block commands, Markdown → HTML for section bodies |
+| `vendor/markra/` | Markra's editor packages, vendored as source (see its `NOTICE.md`) |
 | `oauth-proxy/` | Cloudflare Worker that adds CORS headers to GitHub's OAuth endpoints |
 
 Saving reads the file's blob `sha` when it is opened and sends it back with the write, which is how
@@ -96,6 +100,20 @@ GitHub detects that you edited a stale copy.
 
 Markdown from the repository is sanitised with DOMPurify before it renders, so a hostile file cannot
 script a page that holds your token.
+
+## License
+
+mdpad is licensed under the **GNU Affero General Public License v3.0** (`LICENSE`), because its
+editor is Markra's, which is AGPL-3.0-only. Running a modified mdpad on a network means offering
+its users the complete source.
+
+## Credits
+
+The editor — the live Markdown preview, its paper layout and typography, tables, code blocks,
+callouts, math, the slash menu, block drag and the hover controls — is
+[Markra](https://github.com/markrahq/markra) by the Markra authors. Its packages are vendored in
+`vendor/markra/` and its app-side editor chrome and stylesheet in `src/markra/`, at the commit
+recorded in `vendor/markra/NOTICE.md`.
 
 ## The OAuth relay
 
@@ -122,10 +140,11 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 - Writes go through the contents API, which caps out at 1 MB per file.
 - The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
   you can push to. A fine-grained personal access token is the narrower option when that matters.
-- A `<details>` block is a real node: summary and body are edited in place and written back as
-  `<details><summary>…</summary>…</details>`. Other raw HTML is preserved as an atomic node and
-  **rendered as content** — a centred header is centred. Click it to edit the HTML behind it.
-- Rich text rewrites bullets and table separators (`-` becomes `*`), and footnote definitions are
-  re-serialised. Everything else round-trips verbatim.
+- A `<details>` block is one rendered block: summary and content are Markdown, and **Edit section**
+  on the block writes both parts back as `<details><summary>…</summary>…</details>`. Other raw HTML
+  is rendered as content — a centred header is centred — and clicking it reveals the source.
+- The rich editor edits the Markdown source directly, so text round-trips as written: bullets stay
+  `-`, table separators stay as authored, and footnote definitions are untouched. The flip side is
+  that a hard-wrapped paragraph keeps its source line breaks instead of reflowing like GitHub.
 - Markdown mode is an escape hatch for the rare file that needs byte-exact text; it is never
   required to edit.

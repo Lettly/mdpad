@@ -6,3 +6,4 @@ dist-ssr
 .vite
 oauth-proxy/node_modules
 oauth-proxy/.wrangler
+.openchamber

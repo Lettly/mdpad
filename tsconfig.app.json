@@ -2,7 +2,7 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "es2023",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "esnext",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
@@ -16,16 +16,28 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* @toast-ui/editor ships types but its package.json "exports" omits them. */
+    /* The vendored Markra packages (vendor/markra) keep their upstream
+       workspace specifiers; these paths mirror the aliases in vite.config.ts. */
     "paths": {
-      "@toast-ui/editor": ["./node_modules/@toast-ui/editor/types/index.d.ts"]
+      "@markra/editor/codemirror": ["./vendor/markra/packages/editor/src/codemirror/index.ts"],
+      "@markra/editor": ["./vendor/markra/packages/editor/src/index.ts"],
+      "@markra/markdown": ["./vendor/markra/packages/markdown/src/index.ts"],
+      "@markra/shared": ["./vendor/markra/packages/shared/src/index.ts"],
+      "@markra/editor-react": ["./vendor/markra/packages/editor-react/src/index.ts"],
+      "@markra/ai": ["./vendor/markra/stubs/ai.ts"],
+      "@tauri-apps/api/core": ["./vendor/markra/stubs/tauri-core.ts"]
     },
 
-    /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
+    /* Linting.
+       The three checks below are relaxed because vendor/markra is upstream
+       source, type-checked exactly as published: it uses constructor
+       parameter properties (not erasable) and carries a few unused locals.
+       Patching 100+ vendored files to satisfy them would make the next
+       upstream sync a merge nightmare. */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src", "vendor/markra/packages/*/src", "vendor/markra/stubs"]
 }
