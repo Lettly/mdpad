@@ -492,7 +492,7 @@ function buildDecorations(
       }
     }
 
-    if (node.name === "LinkReference") {
+    if (node.name === "LinkReference" && !isFootnoteLinkSyntax(state, node.node as MarkraSyntaxNode)) {
       // A definition (`[label]: url`) is metadata, not prose: GitHub renders
       // nothing for it. Keep it hidden until the caret enters its line, the way
       // every other Markdown mark is revealed for editing.
