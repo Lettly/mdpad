@@ -3,12 +3,11 @@ import type { EditorView } from '@codemirror/view'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { replaceCodeMirrorMarkdown, runMarkraCommand } from '@markra/editor/codemirror'
 import { MarkraEditorProvider } from '@markra/editor-react'
-import Modal from '../components/Modal'
 import { CodeMirrorPaperSurface } from '../markra/chrome/CodeMirrorPaperSurface'
 import { SelectionToolbar } from '../markra/chrome/SelectionToolbar'
-import { detailsPlugin, serializeDetails, type DetailsBlock } from '../editor/markra/details'
+import { detailsPlugin, resetDetailsState } from '../editor/markra/details'
 import { insertBlockText, insertInlineText, mdpadBlocksPlugin } from '../editor/markra/blocks'
-import { resolveImage, type ImageLocation } from '../lib/images'
+import { resolveImage, resolveRepoPath, type ImageLocation } from '../lib/images'
 
 export type EditorMode = 'wysiwyg' | 'markdown'
 
@@ -52,10 +51,6 @@ export default function MarkraEditor({
 }: Props) {
   const viewRef = useRef<EditorView | null>(null)
   const [editorView, setEditorView] = useState<EditorView | null>(null)
-  const [detailsEdit, setDetailsEdit] = useState<{
-    details: DetailsBlock
-    apply: (next: DetailsBlock) => void
-  } | null>(null)
 
   const onChangeRef = useRef(onChange)
   const onSyncRef = useRef(onSync)
@@ -72,10 +67,6 @@ export default function MarkraEditor({
   const modeRef = useRef(mode)
   modeRef.current = mode
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  // Markra's plugins are built into its surface; mdpad only adds the ones it
-  // owns: collapsible sections and the extra block commands.
-  const plugins = useRef([detailsPlugin({ onEdit: setDetailsEdit }), mdpadBlocksPlugin()]).current
 
   // Renderers only re-run on a document change, so a private image that arrives
   // after the first paint needs a nudge that leaves the text and undo untouched.
@@ -99,9 +90,42 @@ export default function MarkraEditor({
     [refreshImages],
   )
 
+  // A link inside a section body cannot go through the editor's link plugin:
+  // it is rendered DOM, not Markdown text. External links open in a tab, and a
+  // relative path opens its page on GitHub, where the branch is correct.
+  const resolveDetailsLink = useCallback((href: string) => {
+    if (/^[a-z][a-z\d+.-]*:/i.test(href) || href.startsWith('//')) return href
+    if (href.startsWith('#')) return null
+
+    const location = imageLocationRef.current
+    if (!location) return null
+
+    const path = resolveRepoPath(location.documentPath, href)
+    if (!path) return null
+
+    const encoded = path.split('/').map(encodeURIComponent).join('/')
+    return `https://github.com/${location.owner}/${location.repo}/blob/${encodeURIComponent(location.branch)}/${encoded}`
+  }, [])
+
+  const openDetailsLink = useCallback((url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [])
+
+  // Markra's plugins are built into its surface; mdpad only adds the ones it
+  // owns: collapsible sections and the extra block commands.
+  const plugins = useRef([
+    detailsPlugin({
+      openExternalUrl: openDetailsLink,
+      resolveImageSrc,
+      resolveLinkHref: resolveDetailsLink,
+    }),
+    mdpadBlocksPlugin(),
+  ]).current
+
   useEffect(
     () => () => {
       viewRef.current = null
+      resetDetailsState()
       onReadyRef.current(null)
     },
     [],
@@ -117,6 +141,7 @@ export default function MarkraEditor({
 
     onReadyRef.current({
       setValue: (markdown) => {
+        resetDetailsState()
         replaceCodeMirrorMarkdown(view, markdown)
         // The editor edits the Markdown source directly, so the document is
         // already what a save would write: adopt it as the clean baseline.
@@ -174,7 +199,7 @@ export default function MarkraEditor({
               language="en"
               onEditorReady={handleReady}
               onMarkdownChange={(markdown) => onChangeRef.current(markdown)}
-              openExternalUrl={(url) => window.open(url, '_blank', 'noopener,noreferrer')}
+              openExternalUrl={openDetailsLink}
               paragraphSpacingPx={8}
               plugins={plugins}
               resolveImageSrc={resolveImageSrc}
@@ -195,61 +220,6 @@ export default function MarkraEditor({
           value={value}
           onChange={(event) => onChange(event.target.value)}
         />
-      ) : null}
-
-      {detailsEdit ? (
-        <Modal
-          title="Collapsible section"
-          description="Shown on GitHub as a disclosure. Summary and content are Markdown."
-          onClose={() => setDetailsEdit(null)}
-          footer={
-            <>
-              <button className="btn" onClick={() => setDetailsEdit(null)}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  detailsEdit.apply(detailsEdit.details)
-                  setDetailsEdit(null)
-                }}
-              >
-                Save
-              </button>
-            </>
-          }
-        >
-          <label className="field">
-            <span>Summary</span>
-            <input
-              className="input"
-              value={detailsEdit.details.summary}
-              onChange={(event) =>
-                setDetailsEdit({
-                  ...detailsEdit,
-                  details: { ...detailsEdit.details, summary: event.target.value },
-                })
-              }
-            />
-          </label>
-          <label className="field">
-            <span>Content</span>
-            <textarea
-              className="input textarea"
-              rows={6}
-              value={detailsEdit.details.body}
-              onChange={(event) =>
-                setDetailsEdit({
-                  ...detailsEdit,
-                  details: { ...detailsEdit.details, body: event.target.value },
-                })
-              }
-            />
-          </label>
-          <p className="field-hint">
-            Saves as <code>{serializeDetails(detailsEdit.details).split('\n')[0]}</code> …
-          </p>
-        </Modal>
       ) : null}
     </div>
   )

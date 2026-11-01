@@ -1,7 +1,9 @@
 # Collapsible sections
 
 A `<details>` block renders as a disclosure on GitHub. In mdpad it is one block: the summary and
-the content are both Markdown, and **Edit section** on the block opens a form for the two parts.
+the content are both Markdown, and the section collapses as it does on GitHub. Hover it and press
+**Edit** — or double-click the summary or the content — to edit both parts in place. `⌘/Ctrl+Enter`
+saves, `Esc` cancels, and clicking elsewhere saves the draft.
 
 ## Simple
 
@@ -45,6 +47,31 @@ Almost any block:
 
 </details>
 
+## Nested sections
+
+<details>
+<summary>A section inside a section</summary>
+
+<details>
+<summary>The **inner** section</summary>
+
+Nested sections render inside their parent, and the inner summary is Markdown too.
+
+</details>
+
+The outer content continues after the inner section.
+
+</details>
+
+## Raw HTML in the content
+
+<details>
+<summary>A centred line and a key</summary>
+
+<div align="center">A centred line with <kbd>⌘</kbd> in it.</div>
+
+</details>
+
 ## Closed by default, one open
 
 <details>
@@ -57,8 +84,9 @@ The first body.
 <details open>
 <summary>Second section (open)</summary>
 
-The `open` attribute keeps a section expanded when the page loads. The preview shows every section
-expanded while you edit it.
+The `open` attribute keeps a section expanded when the page loads. mdpad renders the same state:
+click the summary to open it while editing, and **Open by default** in the editor writes the
+attribute.
 
 </details>
 

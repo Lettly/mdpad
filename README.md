@@ -62,9 +62,12 @@ and the GitHub-flavoured blocks mdpad adds:
 | Keyboard key | `<kbd>⌘</kbd>` |
 | Divider | `---` |
 
-A collapsible section is one block: the summary and the content are rendered as Markdown, and
-**Edit section** on the block opens a form for the two parts. Other raw HTML renders as content;
-click it to reveal the source in place.
+A collapsible section is one block: the summary and the content render as Markdown — nested
+sections, callouts, tables, code and raw HTML included — and the section collapses as it does on
+GitHub. Hover it and press **Edit**, or double-click the summary or the content, to edit both parts
+in place: `⌘/Ctrl+Enter` saves, `Esc` cancels, and clicking elsewhere saves the draft. **Open by
+default** writes the `open` attribute, and the other attributes on `<details>` are kept. Other raw
+HTML renders as content; click it to reveal the source in place.
 
 ## Development
 
@@ -144,9 +147,11 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 - Writes go through the contents API, which caps out at 1 MB per file.
 - The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
   you can push to. A fine-grained personal access token is the narrower option when that matters.
-- A `<details>` block is one rendered block: summary and content are Markdown, and **Edit section**
-  on the block writes both parts back as `<details><summary>…</summary>…</details>`. Other raw HTML
-  is rendered as content — a centred header is centred — and clicking it reveals the source.
+- A `<details>` block is one rendered block: summary and content are Markdown, edited in place
+  rather than in a dialog, and written back as `<details>` with its attributes intact. Nested
+  sections render inside it, and a section without a `<summary>` shows GitHub's default label.
+  Other raw HTML is rendered as content — a centred header is centred — and clicking it reveals the
+  source.
 - The rich editor edits the Markdown source directly, so text round-trips as written: bullets stay
   `-`, table separators stay as authored, and footnote definitions are untouched. The flip side is
   that a hard-wrapped paragraph keeps its source line breaks instead of reflowing like GitHub.
