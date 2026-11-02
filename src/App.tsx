@@ -221,8 +221,15 @@ export default function App() {
 
   /* ---------------------------------------------------------------- file */
 
+  // The document is identified by where it lives, not by the session object:
+  // refreshing the tree after an upload replaces the session, and that must not
+  // reload the file over the text the user has not saved yet.
+  const repoOwner = session?.repo.owner.login ?? null
+  const repoName = session?.repo.name ?? null
+  const branch = session?.branch ?? null
+
   useEffect(() => {
-    if (!token || !session || !route?.path) {
+    if (!token || !repoOwner || !repoName || !branch || !route?.path) {
       setDoc(null)
       setText('')
       setFileError(null)
@@ -241,7 +248,7 @@ export default function App() {
     setFileLoading(true)
     setFileError(null)
 
-    readFile(token, session.repo.owner.login, session.repo.name, path, session.branch)
+    readFile(token, repoOwner, repoName, path, branch)
       .then((file) => {
         if (cancelled) return
 
@@ -263,7 +270,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [token, session, route?.path, fileReload])
+  }, [token, repoOwner, repoName, branch, route?.path, fileReload])
 
   /* -------------------------------------------------------------- editor */
 
