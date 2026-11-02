@@ -308,12 +308,17 @@ code {
 .btn {
   height: 32px;
   padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 8px;
   border: 1px solid var(--border-strong);
   background: var(--bg);
   color: var(--fg);
   font-size: 0.82rem;
   font-weight: 500;
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
 }
@@ -916,13 +921,6 @@ code {
   background: var(--bg-elev);
 }
 
-.device-lead {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--fg-muted);
-  line-height: 1.5;
-}
-
 .device-code {
   font-family: var(--mono);
   font-size: 1.5rem;
@@ -930,9 +928,50 @@ code {
   letter-spacing: 0.16em;
 }
 
-.device-actions {
+.device-steps {
+  counter-reset: device-step;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.device-steps li {
+  counter-increment: device-step;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
+}
+
+.device-steps li::before {
+  content: counter(device-step);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+
+.device-step-text {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+
+.device-steps .btn {
+  width: 100%;
 }
 
 .device-wait {

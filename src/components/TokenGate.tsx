@@ -73,19 +73,32 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
           <div className="gate-oauth">
             {device ? (
               <div className="device-card">
-                <p className="device-lead">Enter this code on GitHub to authorize mdpad:</p>
-                <div className="device-code">{device.user_code}</div>
-                <div className="device-actions">
-                  <a className="btn" href={device.verification_uri} target="_blank" rel="noreferrer">
-                    Open GitHub
-                  </a>
-                  <button className="btn" onClick={copyCode}>
-                    {copied ? 'Copied' : 'Copy code'}
-                  </button>
-                </div>
-                <p className="device-wait">
-                  <span className="spinner" /> Waiting for authorization…
-                </p>
+                <ol className="device-steps">
+                  <li>
+                    <p className="device-step-text">Open the GitHub page in a new tab.</p>
+                    <a
+                      className="btn btn-block"
+                      href={device.verification_uri}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open GitHub
+                    </a>
+                  </li>
+                  <li>
+                    <p className="device-step-text">Enter this code, then approve mdpad.</p>
+                    <div className="device-code">{device.user_code}</div>
+                    <button className="btn btn-block" onClick={copyCode}>
+                      {copied ? 'Copied' : 'Copy code'}
+                    </button>
+                  </li>
+                  <li>
+                    <p className="device-step-text">Come back to this tab.</p>
+                    <p className="device-wait">
+                      <span className="spinner" /> Waiting for authorization…
+                    </p>
+                  </li>
+                </ol>
                 <button className="link-btn" onClick={cancel}>
                   Cancel
                 </button>
