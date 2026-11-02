@@ -31,9 +31,29 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
 
   const configured = Boolean(settings.clientId && settings.proxy)
 
+  const draftClientId = clientIdDraft.trim()
+  const draftProxy = normalizeProxy(proxyDraft)
+  const draftValid = Boolean(draftClientId) && validProxy(draftProxy)
+  const dirty = draftClientId !== settings.clientId || draftProxy !== settings.proxy
+
   useEffect(() => () => abortRef.current?.abort(), [])
 
+  /**
+   * Writes a usable pair from the advanced fields, so signing in never runs
+   * against settings the visitor can see but has not confirmed. Returns whether
+   * anything was stored.
+   */
+  const persistDrafts = () => {
+    if (!draftValid || !dirty) return false
+
+    setSettings(writeOAuthSettings({ clientId: draftClientId, proxy: draftProxy }))
+    setClientIdDraft(draftClientId)
+    setProxyDraft(draftProxy)
+    return true
+  }
+
   const begin = async () => {
+    persistDrafts()
     setStarting(true)
     setFlowError(null)
     setThrottledFor(null)
@@ -79,20 +99,12 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
     }
   }
 
-  const draftClientId = clientIdDraft.trim()
-  const draftProxy = normalizeProxy(proxyDraft)
-  const draftValid = Boolean(draftClientId) && validProxy(draftProxy)
-  const dirty = draftClientId !== settings.clientId || draftProxy !== settings.proxy
-
   const saveAdvanced = (event: FormEvent) => {
     event.preventDefault()
-    if (!draftValid) return
+    if (!persistDrafts()) return
 
     // A code already on screen belongs to the previous app; start over.
     cancel()
-    setSettings(writeOAuthSettings({ clientId: draftClientId, proxy: draftProxy }))
-    setClientIdDraft(draftClientId)
-    setProxyDraft(draftProxy)
     setFlowError(null)
     setSavedNote(true)
     window.setTimeout(() => setSavedNote(false), 2000)

@@ -158,9 +158,11 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 
 Anyone can run their own pair: **Advanced — use your own OAuth app** on the login screen takes a
 client id and a relay URL, saves them in that browser's local storage under `mdpad.oauth`, and uses
-them instead of the built ones. That is the way to fork mdpad onto your own relay without rebuilding
-it, and a fork with no values in `.env` still works — the section opens itself and sign-in appears
-as soon as both fields are saved. **Use the built-in app** drops the override.
+them instead of the built ones. The fields are stored when you press **Save**, and also when a
+sign-in starts with a valid pair in them, so typing a pair and going straight to **Sign in with
+GitHub** is enough. That is the way to fork mdpad onto your own relay without rebuilding it, and a
+fork with no values in `.env` still works — the section opens itself and sign-in appears as soon as
+both fields are saved. **Use the built-in app** drops the override.
 
 GitHub throttles the relay now and then, because a Worker shares Cloudflare's egress addresses with
 everything else on them: `/device/code` or `/access_token` answers `429` with "Access to this site
