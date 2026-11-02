@@ -82,7 +82,8 @@ the rest of the document. Click the title to rename it; the chevron folds the se
 dialog: `Enter` in the title moves into the body, `Esc` cancels the rename, and clicking away keeps
 it. The **Open by default** checkbox in the title editor writes the `open` attribute, and the other
 attributes on `<details>` are kept. Other raw HTML renders as content; click it to reveal the
-source in place.
+source in place. An image written as `<img>` stays a picture when clicked — double-click it to edit
+its HTML source.
 
 ## Development
 
@@ -182,7 +183,8 @@ skips OAuth entirely.
   section without a `<summary>` shows GitHub's default label. A non-standard layout — trailing text
   after the close tag, for example — falls back to a rendered block with a double-click editor.
   Other raw HTML is rendered as content — a centred header is centred — and clicking it reveals the
-  source.
+  source. Images are the exception: clicking one keeps the picture, and a double-click edits the
+  HTML source.
 - The rich editor edits the Markdown source directly, so text round-trips as written: bullets stay
   `-`, table separators stay as authored, and footnote definitions are untouched. The flip side is
   that a hard-wrapped paragraph keeps its source line breaks instead of reflowing like GitHub.

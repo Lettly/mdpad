@@ -1,5 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
-import type { Range } from "@codemirror/state";
+import { EditorSelection, type Range } from "@codemirror/state";
 import {
   Decoration,
   EditorView,
@@ -206,6 +206,16 @@ function inlineHtmlRanges(
   return disjoint;
 }
 
+/**
+ * An image is content, not markup: `<img>`, a centred `<p><img></p>` and an
+ * image wrapped in a link all look the same to the reader. Treating them like
+ * other raw HTML would replace the picture with its source on the first click.
+ */
+function rendersOnlyImages(root: HTMLElement) {
+  if (root.tagName !== "IMG" && !root.querySelector("img")) return false;
+  return root.textContent?.trim() === "";
+}
+
 class RawHtmlWidget extends WidgetType {
   constructor(
     readonly range: CodeMirrorHtmlRange,
@@ -237,17 +247,55 @@ class RawHtmlWidget extends WidgetType {
       root.classList.add(this.range.block ? "markra-html-node" : "cm-markra-inline-html");
     }
 
-    root.dataset.type = "html";
+    const imageOnly = rendersOnlyImages(root);
+    root.dataset.type = imageOnly ? "html-image" : "html";
     root.dataset.value = this.range.source;
     root.tabIndex = 0;
-    root.setAttribute("role", "button");
-    root.setAttribute("aria-label", "Edit HTML source");
+    if (imageOnly) {
+      root.classList.add("cm-markra-html-image");
+      root.setAttribute("role", "img");
+      root.setAttribute("aria-label", "Image");
+    } else {
+      root.setAttribute("role", "button");
+      root.setAttribute("aria-label", "Edit HTML source");
+    }
     const activate = (event: Event) => {
       event.preventDefault();
       event.stopPropagation();
       revealHtmlSource(view, this.range);
     };
-    root.addEventListener("mousedown", activate);
+    const imageTarget = (event: Event) =>
+      event.target instanceof Element && event.target.closest("img") !== null;
+    const keepImage = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    // Keep a picture rendered: prevent CodeMirror from placing the caret inside
+    // the range, which would reveal the source. A double-click still opens it,
+    // and so does Enter when the image has focus. Mixed HTML keeps its usual
+    // click-to-edit, except on the images themselves.
+    root.addEventListener("mousedown", (event) => {
+      if (!imageOnly && !imageTarget(event)) {
+        activate(event);
+        return;
+      }
+      keepImage(event);
+      // An inline picture is atomic, so the caret goes just after it and typing
+      // continues the sentence. A block picture keeps the caret where it was:
+      // its remaining source lines are hidden, so a caret inside them would
+      // swallow the next keystrokes.
+      if (!this.range.block) {
+        const anchor = Math.min(this.range.to, view.state.doc.length);
+        view.dispatch({ selection: EditorSelection.cursor(anchor) });
+      }
+      view.focus();
+    });
+    root.addEventListener("click", (event) => {
+      if (imageOnly || imageTarget(event)) keepImage(event);
+    });
+    root.addEventListener("dblclick", (event) => {
+      if (imageOnly || imageTarget(event)) activate(event);
+    });
     root.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") activate(event);
     });
@@ -341,6 +389,9 @@ const rawHtmlTheme = EditorView.baseTheme({
   },
   ".cm-markra-inline-html": {
     cursor: "text",
+  },
+  ".cm-markra-html-image": {
+    cursor: "default",
   },
 });
 
