@@ -89,6 +89,19 @@ export function directoryPaths(nodes: TreeNode[]): string[] {
   return out
 }
 
+/** Every file path, so an upload can avoid overwriting one by accident. */
+export function filePaths(nodes: TreeNode[]): string[] {
+  const out: string[] = []
+  const walk = (list: TreeNode[]) => {
+    for (const node of list) {
+      if (node.type === 'file') out.push(node.path)
+      else walk(node.children)
+    }
+  }
+  walk(nodes)
+  return out
+}
+
 /** Directory paths that must be expanded to reveal `path`. */
 export function ancestorsOf(path: string): string[] {
   const parts = path.split('/').slice(0, -1)

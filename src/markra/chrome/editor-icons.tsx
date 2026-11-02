@@ -28,6 +28,7 @@ import {
   Superscript,
   Table2,
   TextQuote,
+  Upload,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -66,6 +67,7 @@ const EDITOR_ICONS: Record<string, LucideIcon> = {
   superscript: Superscript,
   'table-2': Table2,
   'text-quote': TextQuote,
+  upload: Upload,
 }
 
 export function EditorIcon({ name, size = 14 }: { name?: string; size?: number }) {

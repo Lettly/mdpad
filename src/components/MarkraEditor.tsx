@@ -7,6 +7,7 @@ import { CodeMirrorPaperSurface } from '../markra/chrome/CodeMirrorPaperSurface'
 import { SelectionToolbar } from '../markra/chrome/SelectionToolbar'
 import { detailsPlugin, resetDetailsState } from '../editor/markra/details'
 import { insertBlockText, insertInlineText, mdpadBlocksPlugin } from '../editor/markra/blocks'
+import { mdpadUploadPlugin } from '../editor/markra/upload'
 import { resolveImage, resolveRepoPath, type ImageLocation } from '../lib/images'
 
 export type EditorMode = 'wysiwyg' | 'markdown'
@@ -29,6 +30,8 @@ type Props = {
   onChange: (markdown: string) => void
   onSync: (markdown: string) => void
   onReady: (api: EditorApi | null) => void
+  /** Opens the upload dialog from the editor's slash and right-click menus. */
+  onUpload: () => void
 }
 
 /** Markra's paper shell: the same wrappers, utilities and spacing as its app. */
@@ -48,6 +51,7 @@ export default function MarkraEditor({
   onChange,
   onSync,
   onReady,
+  onUpload,
 }: Props) {
   const viewRef = useRef<EditorView | null>(null)
   const [editorView, setEditorView] = useState<EditorView | null>(null)
@@ -55,9 +59,11 @@ export default function MarkraEditor({
   const onChangeRef = useRef(onChange)
   const onSyncRef = useRef(onSync)
   const onReadyRef = useRef(onReady)
+  const onUploadRef = useRef(onUpload)
   onChangeRef.current = onChange
   onSyncRef.current = onSync
   onReadyRef.current = onReady
+  onUploadRef.current = onUpload
 
   const imageLocationRef = useRef(imageLocation)
   imageLocationRef.current = imageLocation
@@ -112,7 +118,7 @@ export default function MarkraEditor({
   }, [])
 
   // Markra's plugins are built into its surface; mdpad only adds the ones it
-  // owns: collapsible sections and the extra block commands.
+  // owns: collapsible sections, the extra block commands, and uploads.
   const plugins = useRef([
     detailsPlugin({
       openExternalUrl: openDetailsLink,
@@ -120,6 +126,7 @@ export default function MarkraEditor({
       resolveLinkHref: resolveDetailsLink,
     }),
     mdpadBlocksPlugin(),
+    mdpadUploadPlugin({ onUpload: () => onUploadRef.current() }),
   ]).current
 
   useEffect(

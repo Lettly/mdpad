@@ -46,6 +46,14 @@ Deep links work too, so a URL like `#/owner/repo/blob/main/README.md` opens that
 request, no review. If the file changed on GitHub in the meantime, GitHub rejects the write and
 you get a conflict error; reload and re-apply.
 
+**Upload** — the button above the editor, **File → Upload files…** in the right-click menu, `/` then
+*Upload files*, or dropping or pasting files onto the editor — opens the upload dialog. Pick a
+destination folder from the list, or type a path that does not exist yet to create it with the
+upload, then choose a commit message: the files are committed to the branch in one commit. Images
+(png, jpg, gif, svg, webp, avif, bmp, ico) are embedded at the cursor as
+`![alt](../assets/logo.png)`; everything else becomes a link. Both use a path relative to the
+document, so the Markdown keeps working wherever the repository is rendered.
+
 ## Blocks
 
 There is no toolbar: the surface is Markra's. Select text and the formatting menu appears above it
@@ -151,7 +159,8 @@ Redeploy the worker after changing that allowlist; nothing else needs rebuilding
 ## Limits
 
 - Only `.md`, `.markdown`, `.mdx` and `.txt` files are editable; the rest are listed but dimmed.
-- Writes go through the contents API, which caps out at 1 MB per file.
+- Saving a document goes through the contents API, which caps out at 1 MB per file. Uploads go
+  through the Git Data API instead and are capped at 25 MB per file.
 - The device flow signs in with a **classic** token scoped `repo`: read/write on every repository
   you can push to. A fine-grained personal access token is the narrower option when that matters.
 - A `<details>` block is one block: the wrapper tags are hidden, the body stays Markdown you edit

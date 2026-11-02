@@ -3,7 +3,7 @@
  * api.github.com, which sends permissive CORS headers, so no server is needed.
  */
 
-import { decodeBase64, encodeBase64, utf8Length } from './base64'
+import { decodeBase64, encodeBase64, encodeBase64Bytes, utf8Length } from './base64'
 
 const API = 'https://api.github.com'
 
@@ -193,6 +193,66 @@ export async function writeFile(
   )
 
   return { commitSha: data.commit.sha, contentSha: data.content.sha }
+}
+
+/** GitHub refuses blobs above 100 MB; stay well below it. */
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+export type CommitFile = { path: string; bytes: Uint8Array }
+
+export type CommitResult = { commitSha: string }
+
+/**
+ * Commits binary files in one commit through the Git Data API. The contents API
+ * only takes text up to 1 MB, and uploads are usually images and PDFs.
+ */
+export async function commitFiles(
+  token: string,
+  owner: string,
+  repo: string,
+  input: { branch: string; message: string; files: CommitFile[] },
+): Promise<CommitResult> {
+  const base = `/repos/${owner}/${repo}`
+
+  const entries = await Promise.all(
+    input.files.map(async (file) => {
+      if (file.bytes.length > MAX_UPLOAD_BYTES) {
+        throw new GitHubError(413, `${file.path} is larger than 25 MB`)
+      }
+      const blob = await call<{ sha: string }>(`${base}/git/blobs`, {
+        method: 'POST',
+        body: { content: encodeBase64Bytes(file.bytes), encoding: 'base64' },
+        token,
+      })
+      return { path: file.path, mode: '100644', type: 'blob' as const, sha: blob.sha }
+    }),
+  )
+
+  const ref = await call<{ object: { sha: string } }>(
+    `${base}/git/ref/heads/${encodePath(input.branch)}`,
+    { token },
+  )
+  const parent = await call<{ tree: { sha: string } }>(
+    `${base}/git/commits/${ref.object.sha}`,
+    { token },
+  )
+  const tree = await call<{ sha: string }>(`${base}/git/trees`, {
+    method: 'POST',
+    body: { base_tree: parent.tree.sha, tree: entries },
+    token,
+  })
+  const commit = await call<{ sha: string }>(`${base}/git/commits`, {
+    method: 'POST',
+    body: { message: input.message, tree: tree.sha, parents: [ref.object.sha] },
+    token,
+  })
+  await call(`${base}/git/refs/heads/${encodePath(input.branch)}`, {
+    method: 'PATCH',
+    body: { sha: commit.sha },
+    token,
+  })
+
+  return { commitSha: commit.sha }
 }
 
 /** Turns API errors into something worth reading in a toast. */

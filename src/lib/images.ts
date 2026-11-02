@@ -24,13 +24,24 @@ export function resolveRepoPath(documentPath: string, source: string): string | 
 
   const segments = path.startsWith('/') ? [] : documentPath.split('/').slice(0, -1)
 
-  for (const segment of path.replace(/^\/+/, '').split('/')) {
+  for (const raw of path.replace(/^\/+/, '').split('/')) {
+    // A Markdown destination is a URL, so `%20` is a space in the file name.
+    const segment = decodeSegment(raw)
     if (!segment || segment === '.') continue
     if (segment === '..') segments.pop()
     else segments.push(segment)
   }
 
   return segments.length > 0 ? segments.join('/') : null
+}
+
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    // A stray `%` is a literal character, not an escape.
+    return segment
+  }
 }
 
 export function rawImageUrl(location: ImageLocation, path: string): string {

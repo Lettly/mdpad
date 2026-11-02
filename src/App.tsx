@@ -4,8 +4,10 @@ import FileTree from './components/FileTree'
 import MarkraEditor, { type EditorApi, type EditorMode } from './components/MarkraEditor'
 import OpenRepoDialog from './components/OpenRepoDialog'
 import TokenGate from './components/TokenGate'
+import UploadDialog from './components/UploadDialog'
 import {
   branchExists,
+  commitFiles,
   describeError,
   getAccount,
   getRepo,
@@ -20,6 +22,7 @@ import { parseRepoLink } from './lib/githubUrl'
 import { buildTree, isEditable, type TreeNode } from './lib/tree'
 import { readRoute, routeToHash, type Route } from './lib/route'
 import { loadTheme, loadToken, saveTheme, saveToken, type Theme } from './lib/storage'
+import { markdownForUpload, folderOf, type UploadItem } from './lib/upload'
 
 type Session = {
   repo: Repo
@@ -60,6 +63,10 @@ export default function App() {
   const [commitOpen, setCommitOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [commitError, setCommitError] = useState<string | null>(null)
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [uploadFiles, setUploadFiles] = useState<File[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [toast, setToast] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null)
 
@@ -67,6 +74,7 @@ export default function App() {
   const editorApi = useRef<EditorApi | null>(null)
   const pendingValue = useRef<string | null>(null)
   const toastTimer = useRef<number | undefined>(undefined)
+  const uploadPicker = useRef<HTMLInputElement>(null)
 
   const applySession = useCallback((next: Session | null) => {
     sessionRef.current = next
@@ -327,6 +335,82 @@ export default function App() {
     setFileReload((value) => value + 1)
   }
 
+  /** Uploads land in a new commit, so the sidebar has to be told about them. */
+  const refreshTree = useCallback(async () => {
+    const current = sessionRef.current
+    if (!token || !current) return
+    try {
+      const listing = await getTree(
+        token,
+        current.repo.owner.login,
+        current.repo.name,
+        current.branch,
+      )
+      const latest = sessionRef.current
+      if (
+        !latest ||
+        latest.branch !== current.branch ||
+        latest.repo.full_name !== current.repo.full_name
+      ) {
+        return
+      }
+      applySession({ ...latest, tree: buildTree(listing.entries), truncated: listing.truncated })
+    } catch {
+      // The tree is a convenience; the files themselves are already committed.
+    }
+  }, [token, applySession])
+
+  const openUpload = (files: File[]) => {
+    if (!doc || files.length === 0) return
+    setUploadFiles(files)
+    setUploadError(null)
+    setUploadOpen(true)
+  }
+
+  const closeUpload = () => {
+    setUploadOpen(false)
+    setUploadFiles([])
+    setUploadError(null)
+  }
+
+  const upload = async (items: UploadItem[], message: string) => {
+    const current = sessionRef.current
+    const documentPath = doc?.path
+    if (!token || !current || !documentPath) return
+
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const files = await Promise.all(
+        items.map(async (item) => ({
+          path: item.path,
+          bytes: new Uint8Array(await item.file.arrayBuffer()),
+        })),
+      )
+      const result = await commitFiles(token, current.repo.owner.login, current.repo.name, {
+        branch: current.branch,
+        message,
+        files,
+      })
+
+      const markdown = items.map((item) => markdownForUpload(documentPath, item.path)).join('\n\n')
+      editorApi.current?.insertText(`\n\n${markdown}\n\n`)
+
+      closeUpload()
+      const folder = folderOf(items[0]?.path ?? '')
+      showToast(
+        `Uploaded ${items.length} file${items.length === 1 ? '' : 's'} to ${
+          folder || 'the repository root'
+        } · ${result.commitSha.slice(0, 7)}`,
+      )
+      void refreshTree()
+    } catch (error) {
+      setUploadError(describeError(error))
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const requestMode = (next: EditorMode) => {
     if (next === mode) return
     // Hand the Markdown source to the rich editor when coming back from it.
@@ -490,9 +574,18 @@ export default function App() {
 
                 <div className="pane-actions">
                   {doc ? (
-                    <button className="link-btn" onClick={reloadFile} title="Reload from GitHub">
-                      Reload
-                    </button>
+                    <>
+                      <button
+                        className="btn btn-quiet"
+                        onClick={() => uploadPicker.current?.click()}
+                        title="Upload files into this repository"
+                      >
+                        Upload
+                      </button>
+                      <button className="link-btn" onClick={reloadFile} title="Reload from GitHub">
+                        Reload
+                      </button>
+                    </>
                   ) : null}
                   <div className="segmented" role="group" aria-label="Editor mode">
                     <button aria-pressed={mode === 'wysiwyg'} onClick={() => requestMode('wysiwyg')}>
@@ -530,7 +623,25 @@ export default function App() {
                 ) : null}
 
                 {doc && !fileError ? (
-                  <div className="editor-shell">
+                  <div
+                    className="editor-shell"
+                    onDragOver={(event) => {
+                      if (hasFiles(event.dataTransfer)) event.preventDefault()
+                    }}
+                    onDrop={(event) => {
+                      const dropped = filesFrom(event.dataTransfer)
+                      if (dropped.length === 0) return
+                      event.preventDefault()
+                      openUpload(dropped)
+                    }}
+                    onPasteCapture={(event) => {
+                      const pasted = filesFrom(event.clipboardData)
+                      if (pasted.length === 0) return
+                      event.preventDefault()
+                      event.stopPropagation()
+                      openUpload(pasted)
+                    }}
+                  >
                     <MarkraEditor
                       mode={mode}
                       theme={theme}
@@ -550,6 +661,7 @@ export default function App() {
                       onChange={setText}
                       onSync={handleSync}
                       onReady={handleReady}
+                      onUpload={() => uploadPicker.current?.click()}
                     />
                     {fileLoading ? <div className="editor-veil" /> : null}
                   </div>
@@ -582,12 +694,45 @@ export default function App() {
         />
       ) : null}
 
+      {uploadOpen && doc && session ? (
+        <UploadDialog
+          files={uploadFiles}
+          tree={session.tree}
+          documentPath={doc.path}
+          busy={uploading}
+          error={uploadError}
+          onUpload={upload}
+          onClose={closeUpload}
+        />
+      ) : null}
+
+      <input
+        ref={uploadPicker}
+        type="file"
+        multiple
+        hidden
+        onChange={(event) => {
+          const picked = Array.from(event.target.files ?? [])
+          event.target.value = ''
+          openUpload(picked)
+        }}
+      />
+
       {toast ? <div className={`toast ${toast.tone}`}>{toast.text}</div> : null}
     </div>
   )
 }
 
 /* ------------------------------------------------------------------ bits */
+
+function filesFrom(transfer: DataTransfer | null): File[] {
+  if (!transfer?.files?.length) return []
+  return Array.from(transfer.files)
+}
+
+function hasFiles(transfer: DataTransfer | null): boolean {
+  return Boolean(transfer?.types?.includes('Files'))
+}
 
 async function resolveBranch(
   token: string,

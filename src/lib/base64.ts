@@ -1,13 +1,16 @@
 /** UTF-8 <-> base64 helpers. GitHub's contents API speaks base64. */
 
-export function encodeBase64(text: string): string {
-  const bytes = new TextEncoder().encode(text)
+export function encodeBase64Bytes(bytes: Uint8Array): string {
   let binary = ''
   const chunk = 0x8000
   for (let i = 0; i < bytes.length; i += chunk) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
   }
   return btoa(binary)
+}
+
+export function encodeBase64(text: string): string {
+  return encodeBase64Bytes(new TextEncoder().encode(text))
 }
 
 export function decodeBase64(base64: string): string {

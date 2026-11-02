@@ -94,8 +94,8 @@ async function pasteClipboard(view: EditorView) {
 /**
  * Right-click on the writing surface: the block commands the slash menu lists
  * (headings, lists, tables, collapsible sections, and the rest), the formatting
- * actions for a selection, link actions, and the clipboard. The menu is built
- * from every plugin's UI contributions, Markra's own included.
+ * actions for a selection, link actions, uploads, and the clipboard. The menu is
+ * built from every plugin's UI contributions, Markra's own included.
  */
 export function CodeMirrorPluginUi({ pluginIds }: CodeMirrorPluginUiProps) {
   const view = useMarkraEditorView();
@@ -110,7 +110,7 @@ export function CodeMirrorPluginUi({ pluginIds }: CodeMirrorPluginUiProps) {
     selectionActions.length > 0 ? selectionToolbar.to : null,
   );
   const insertActions = useMarkraEditorUi("slash-menu");
-  const linkActions = useMarkraEditorUi("context-menu");
+  const contextActions = useMarkraEditorUi("context-menu");
   const [contextPoint, setContextPoint] = useState<{
     left: number;
     top: number;
@@ -157,7 +157,18 @@ export function CodeMirrorPluginUi({ pluginIds }: CodeMirrorPluginUiProps) {
       run: () => void pasteClipboard(view),
     });
   }
-  addGroup("link", "Link", linkActions.map(itemFromAction));
+  // Context-menu contributions name their own group — "link" for Markra's link
+  // actions, "file" for uploads — and each group keeps its contribution order.
+  const contextGroups = new Map<string, ContextMenuItem[]>();
+  for (const action of contextActions) {
+    const id = action.group ?? "link";
+    const items = contextGroups.get(id) ?? [];
+    items.push(itemFromAction(action));
+    contextGroups.set(id, items);
+  }
+  for (const [id, items] of contextGroups) {
+    addGroup(id, id.charAt(0).toUpperCase() + id.slice(1), items);
+  }
   if (selectionToolbar.open) {
     addGroup("format", "Format", selectionToolbar.actions.map(itemFromAction));
   }
