@@ -884,6 +884,26 @@ code {
   margin-bottom: 26px;
 }
 
+.gate-splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.gate-splash .gate-brand {
+  margin-bottom: 0;
+}
+
+.gate-splash-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+}
+
 .gate h1 {
   margin: 0 0 10px;
   font-size: 1.45rem;

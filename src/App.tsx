@@ -38,7 +38,9 @@ export default function App() {
   const [token, setToken] = useState<string | null>(() => loadToken())
   const [account, setAccount] = useState<Account | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
-  const [checking, setChecking] = useState(false)
+  // A stored token has not been verified yet on the first render, so the gate
+  // must not be shown until that check settles.
+  const [checking, setChecking] = useState(() => loadToken() !== null)
 
   const [route, setRoute] = useState<Route | null>(() => readRoute())
   const [session, setSession] = useState<Session | null>(null)
@@ -460,6 +462,13 @@ export default function App() {
 
   /* ---------------------------------------------------------------- views */
 
+  // A token in storage is validated before anything else is shown; rendering
+  // the gate while that check runs would flash the login screen on every
+  // reload of an already signed-in session.
+  if (token && !account && !authError) {
+    return <SessionSplash />
+  }
+
   if (!token || !account) {
     return <TokenGate onConnect={connect} error={authError} busy={checking} />
   }
@@ -758,6 +767,22 @@ async function resolveBranch(
   }
 
   throw new Error(`Branch "${wanted}" was not found in ${owner}/${repo}.`)
+}
+
+function SessionSplash() {
+  return (
+    <div className="gate">
+      <div className="gate-inner gate-splash">
+        <div className="gate-brand">
+          <span className="brand-mark">M</span>
+          <span className="brand-name">mdpad</span>
+        </div>
+        <p className="gate-splash-text">
+          <span className="spinner" /> Restoring your session…
+        </p>
+      </div>
+    </div>
+  )
 }
 
 function Loading({ label }: { label: string }) {
