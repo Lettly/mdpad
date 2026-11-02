@@ -1042,6 +1042,105 @@ code {
   text-decoration: underline;
 }
 
+.gate-advanced {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.gate-advanced > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--fg-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.gate-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.gate-advanced > summary::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.12s ease;
+  transform-origin: 25% 50%;
+}
+
+.gate-advanced[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.gate-advanced > summary:hover {
+  color: var(--fg);
+}
+
+.gate-tag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gate-advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.gate-advanced-lead {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.6;
+  color: var(--fg-muted);
+}
+
+.gate-advanced-lead a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.gate-advanced-lead a:hover {
+  text-decoration: underline;
+}
+
+.gate-advanced .input {
+  height: 34px;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+}
+
+.gate-note {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--fg-faint);
+}
+
+.gate-note-bad {
+  color: var(--danger);
+}
+
+.gate-advanced-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ----------------------------------------------------------------- modal */
 
 .modal-backdrop {

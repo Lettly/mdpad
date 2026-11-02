@@ -1,12 +1,60 @@
 /**
  * GitHub OAuth device flow, relayed through the small worker in `oauth-proxy/`
  * because github.com's OAuth endpoints do not send CORS headers.
+ *
+ * The build ships a client id and relay URL, and a visitor can point both at
+ * their own OAuth app from the login screen's advanced settings.
  */
 
-const proxy = import.meta.env.VITE_OAUTH_PROXY
-const clientId = import.meta.env.VITE_OAUTH_CLIENT_ID
+import { loadOAuthOverride, saveOAuthOverride } from './storage'
 
-export const oauthConfigured = Boolean(proxy && clientId)
+/** What the build shipped. Both values are public, so they sit in `.env`. */
+const defaults = {
+  clientId: import.meta.env.VITE_OAUTH_CLIENT_ID ?? '',
+  proxy: normalizeProxy(import.meta.env.VITE_OAUTH_PROXY ?? ''),
+}
+
+export type OAuthSettings = {
+  clientId: string
+  proxy: string
+  /** The build's own pair, so the screen can offer a way back. */
+  defaults: { clientId: string; proxy: string }
+  /** True once the visitor has saved their own pair. */
+  custom: boolean
+}
+
+export function readOAuthSettings(): OAuthSettings {
+  const saved = loadOAuthOverride()
+  return {
+    clientId: saved?.clientId ?? defaults.clientId,
+    proxy: saved?.proxy ?? defaults.proxy,
+    defaults,
+    custom: saved !== null,
+  }
+}
+
+/** Passing null drops the override and returns to the build's pair. */
+export function writeOAuthSettings(next: { clientId: string; proxy: string } | null): OAuthSettings {
+  saveOAuthOverride(
+    next ? { clientId: next.clientId.trim(), proxy: normalizeProxy(next.proxy) } : null,
+  )
+  return readOAuthSettings()
+}
+
+export function normalizeProxy(value: string): string {
+  return value.trim().replace(/\/+$/, '')
+}
+
+/** A relay has to be an absolute URL; plain http only for a relay on this machine. */
+export function validProxy(value: string): boolean {
+  try {
+    const url = new URL(normalizeProxy(value))
+    const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+    return url.protocol === 'https:' || (url.protocol === 'http:' && local)
+  } catch {
+    return false
+  }
+}
 
 export type DeviceCode = {
   device_code: string
@@ -56,8 +104,12 @@ class RelayError extends Error {
   }
 }
 
-async function post<T>(path: string, body: Record<string, string>): Promise<T> {
-  const response = await fetch(`${proxy}${path}`, {
+async function post<T>(
+  config: OAuthSettings,
+  path: string,
+  body: Record<string, string>,
+): Promise<T> {
+  const response = await fetch(`${config.proxy}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(body),
@@ -108,7 +160,7 @@ function retryAfterSeconds(response: Response): number | null {
 }
 
 export function startDeviceFlow(scope = 'repo'): Promise<DeviceCode> {
-  return startWithRetry(scope)
+  return startWithRetry(readOAuthSettings(), scope)
 }
 
 /**
@@ -116,10 +168,10 @@ export function startDeviceFlow(scope = 'repo'): Promise<DeviceCode> {
  * relay's shared egress address now and then, and one 429 should not cost the
  * visitor a click.
  */
-async function startWithRetry(scope: string): Promise<DeviceCode> {
+async function startWithRetry(config: OAuthSettings, scope: string): Promise<DeviceCode> {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await post<DeviceCode>('/device/code', { client_id: clientId!, scope })
+      return await post<DeviceCode>(config, '/device/code', { client_id: config.clientId, scope })
     } catch (cause) {
       if (!(cause instanceof RelayError) || !cause.transient || attempt >= 3) throw cause
 
@@ -146,14 +198,16 @@ export async function waitForToken(
 ): Promise<string> {
   let wait = Math.max(interval, 5)
   let throttled = 0
+  // Read once: a code issued to one app must be polled against that same app.
+  const config = readOAuthSettings()
 
   for (;;) {
     await sleep(wait * 1000, signal)
 
     let data: TokenResponse
     try {
-      data = await post<TokenResponse>('/access_token', {
-        client_id: clientId!,
+      data = await post<TokenResponse>(config, '/access_token', {
+        client_id: config.clientId,
         device_code: deviceCode,
         grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
       })

@@ -108,7 +108,7 @@ the app. There is nothing secret in it — each visitor brings their own token.
 | --- | --- |
 | `src/lib/github.ts` | REST client for the contents, trees and branches endpoints |
 | `src/lib/githubUrl.ts` | Turns pasted repository/file URLs into `owner`, `repo`, `branch`, `path` |
-| `src/lib/oauth.ts` | GitHub device flow client (start, poll, cancel) |
+| `src/lib/oauth.ts` | GitHub device flow client (start, poll, cancel) and the OAuth app/relay override |
 | `src/lib/route.ts` | Hash router, so deep links work on a static host |
 | `src/lib/tree.ts` | Flat git tree → collapsible file tree |
 | `src/components/MarkraEditor.tsx` | Mounts Markra's paper shell and editor surface, wired to mdpad's commit flow |
@@ -155,6 +155,12 @@ the local dev server may call it. The app reads the relay URL and client id from
 committed because both values are public.
 
 Redeploy the worker after changing that allowlist; nothing else needs rebuilding.
+
+Anyone can run their own pair: **Advanced — use your own OAuth app** on the login screen takes a
+client id and a relay URL, saves them in that browser's local storage under `mdpad.oauth`, and uses
+them instead of the built ones. That is the way to fork mdpad onto your own relay without rebuilding
+it, and a fork with no values in `.env` still works — the section opens itself and sign-in appears
+as soon as both fields are saved. **Use the built-in app** drops the override.
 
 GitHub throttles the relay now and then, because a Worker shares Cloudflare's egress addresses with
 everything else on them: `/device/code` or `/access_token` answers `429` with "Access to this site

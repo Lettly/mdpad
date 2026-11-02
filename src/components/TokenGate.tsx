@@ -1,5 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
-import { oauthConfigured, startDeviceFlow, waitForToken, type DeviceCode } from '../lib/oauth'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import {
+  normalizeProxy,
+  readOAuthSettings,
+  startDeviceFlow,
+  validProxy,
+  waitForToken,
+  writeOAuthSettings,
+  type DeviceCode,
+} from '../lib/oauth'
 
 type Props = {
   onConnect: (token: string) => void
@@ -8,13 +16,20 @@ type Props = {
 }
 
 export default function TokenGate({ onConnect, error, busy }: Props) {
+  const [settings, setSettings] = useState(readOAuthSettings)
   const [token, setToken] = useState('')
   const [device, setDevice] = useState<DeviceCode | null>(null)
   const [flowError, setFlowError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
   const [copied, setCopied] = useState(false)
   const [throttledFor, setThrottledFor] = useState<number | null>(null)
+  const [advancedOpen, setAdvancedOpen] = useState(() => !settings.clientId || !settings.proxy)
+  const [clientIdDraft, setClientIdDraft] = useState(settings.clientId)
+  const [proxyDraft, setProxyDraft] = useState(settings.proxy)
+  const [savedNote, setSavedNote] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+
+  const configured = Boolean(settings.clientId && settings.proxy)
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
@@ -64,6 +79,34 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
     }
   }
 
+  const draftClientId = clientIdDraft.trim()
+  const draftProxy = normalizeProxy(proxyDraft)
+  const draftValid = Boolean(draftClientId) && validProxy(draftProxy)
+  const dirty = draftClientId !== settings.clientId || draftProxy !== settings.proxy
+
+  const saveAdvanced = (event: FormEvent) => {
+    event.preventDefault()
+    if (!draftValid) return
+
+    // A code already on screen belongs to the previous app; start over.
+    cancel()
+    setSettings(writeOAuthSettings({ clientId: draftClientId, proxy: draftProxy }))
+    setClientIdDraft(draftClientId)
+    setProxyDraft(draftProxy)
+    setFlowError(null)
+    setSavedNote(true)
+    window.setTimeout(() => setSavedNote(false), 2000)
+  }
+
+  const useDefaults = () => {
+    cancel()
+    const next = writeOAuthSettings(null)
+    setSettings(next)
+    setClientIdDraft(next.clientId)
+    setProxyDraft(next.proxy)
+    setFlowError(null)
+  }
+
   return (
     <div className="gate">
       <div className="gate-inner">
@@ -78,7 +121,7 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
           GitHub&apos;s API — there is no server, no database, nothing to trust but this page.
         </p>
 
-        {oauthConfigured ? (
+        {configured ? (
           <div className="gate-oauth">
             {device ? (
               <div className="device-card">
@@ -125,7 +168,7 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
           </div>
         ) : null}
 
-        {oauthConfigured ? (
+        {configured ? (
           <div className="gate-divider">
             <span>or paste a token</span>
           </div>
@@ -171,6 +214,87 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
             The token stays in this browser&apos;s local storage. Sign out any time from the header.
           </li>
         </ol>
+
+        <details
+          className="gate-advanced"
+          open={advancedOpen}
+          onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+        >
+          <summary>
+            Advanced — use your own OAuth app
+            {settings.custom ? <span className="gate-tag">yours</span> : null}
+          </summary>
+
+          <form className="gate-advanced-body" onSubmit={saveAdvanced}>
+            <p className="gate-advanced-lead">
+              Sign-in with GitHub goes through a small relay, because GitHub&apos;s OAuth endpoints
+              send no CORS headers. Point both fields at your own{' '}
+              <a href="https://github.com/settings/developers" target="_blank" rel="noreferrer">
+                OAuth app
+              </a>{' '}
+              and{' '}
+              <a
+                href="https://github.com/Lettly/mdpad/tree/main/oauth-proxy"
+                target="_blank"
+                rel="noreferrer"
+              >
+                relay
+              </a>{' '}
+              to use your own.
+            </p>
+
+            <label className="field">
+              <span>OAuth App client ID</span>
+              <input
+                className="input"
+                value={clientIdDraft}
+                spellCheck={false}
+                autoComplete="off"
+                placeholder="Ov23li…"
+                onChange={(event) => setClientIdDraft(event.target.value)}
+              />
+            </label>
+
+            <label className="field">
+              <span>OAuth relay URL</span>
+              <input
+                className="input"
+                value={proxyDraft}
+                spellCheck={false}
+                autoComplete="off"
+                placeholder="https://mdpad-oauth.<account>.workers.dev"
+                onChange={(event) => setProxyDraft(event.target.value)}
+              />
+            </label>
+
+            {draftClientId && !validProxy(draftProxy) ? (
+              <p className="gate-note gate-note-bad">
+                The relay needs an absolute URL — <code>https://…</code>, or <code>http://localhost</code>{' '}
+                for a relay on this machine.
+              </p>
+            ) : (
+              <p className="gate-note">
+                Saved in this browser only. Both values are public; neither is a secret.
+              </p>
+            )}
+
+            <div className="gate-advanced-actions">
+              <button className="btn" type="submit" disabled={!draftValid || !dirty}>
+                {savedNote ? 'Saved' : 'Save'}
+              </button>
+              {settings.defaults.clientId && settings.defaults.proxy ? (
+                <button
+                  className="btn btn-quiet"
+                  type="button"
+                  onClick={useDefaults}
+                  disabled={!settings.custom}
+                >
+                  Use the built-in app
+                </button>
+              ) : null}
+            </div>
+          </form>
+        </details>
       </div>
     </div>
   )
