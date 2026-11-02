@@ -43,6 +43,9 @@ A broken reference shows its alt text instead of an image:
 - A list item with an image:
 
   ![The GitHub mark](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png)
+## Test Upload
+![favicon (1)](img/favicon%20%281%29.png)
+
 
 ## Repo-relative paths
 
