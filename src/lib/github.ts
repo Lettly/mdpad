@@ -269,6 +269,8 @@ export function describeError(error: unknown): string {
         return 'Not found. Check the repository name, the branch, and the token scopes.'
       case 409:
         return 'Conflict: the file changed on GitHub since you opened it. Reload it.'
+      case 429:
+        return 'GitHub is rate limiting requests. Wait a minute, then try again.'
       default:
         return `${error.message} (${error.status})`
     }

@@ -13,6 +13,7 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
   const [flowError, setFlowError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [throttledFor, setThrottledFor] = useState<number | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => () => abortRef.current?.abort(), [])
@@ -20,6 +21,7 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
   const begin = async () => {
     setStarting(true)
     setFlowError(null)
+    setThrottledFor(null)
     try {
       const code = await startDeviceFlow()
       setDevice(code)
@@ -27,7 +29,12 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
       const controller = new AbortController()
       abortRef.current = controller
 
-      const accessToken = await waitForToken(code.device_code, code.interval, controller.signal)
+      const accessToken = await waitForToken(
+        code.device_code,
+        code.interval,
+        controller.signal,
+        setThrottledFor,
+      )
       onConnect(accessToken)
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'AbortError') return
@@ -35,6 +42,7 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
       setDevice(null)
     } finally {
       setStarting(false)
+      setThrottledFor(null)
     }
   }
 
@@ -42,6 +50,7 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
     abortRef.current?.abort()
     abortRef.current = null
     setDevice(null)
+    setThrottledFor(null)
   }
 
   const copyCode = async () => {
@@ -95,7 +104,10 @@ export default function TokenGate({ onConnect, error, busy }: Props) {
                   <li>
                     <p className="device-step-text">Come back to this tab.</p>
                     <p className="device-wait">
-                      <span className="spinner" /> Waiting for authorization…
+                      <span className="spinner" />{' '}
+                      {throttledFor === null
+                        ? 'Waiting for authorization…'
+                        : `GitHub is limiting sign-ins — retrying in ${throttledFor}s…`}
                     </p>
                   </li>
                 </ol>

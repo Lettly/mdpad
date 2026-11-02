@@ -30,6 +30,8 @@ export default {
       'access-control-allow-origin': allowedOrigin ?? 'null',
       'access-control-allow-methods': 'POST, OPTIONS',
       'access-control-allow-headers': 'content-type',
+      // The client backs off by Retry-After when GitHub throttles this relay.
+      'access-control-expose-headers': 'retry-after',
       'access-control-max-age': '86400',
       vary: 'origin',
     }
@@ -62,12 +64,15 @@ export default {
       return fail('upstream_unreachable', 502, cors)
     }
 
+    const retryAfter = upstream.headers.get('retry-after')
+
     return new Response(await upstream.text(), {
       status: upstream.status,
       headers: {
         ...cors,
         'content-type': 'application/json',
         'cache-control': 'no-store',
+        ...(retryAfter ? { 'retry-after': retryAfter } : {}),
       },
     })
   },

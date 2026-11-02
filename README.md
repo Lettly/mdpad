@@ -156,6 +156,12 @@ committed because both values are public.
 
 Redeploy the worker after changing that allowlist; nothing else needs rebuilding.
 
+GitHub throttles the relay now and then, because a Worker shares Cloudflare's egress addresses with
+everything else on them: `/device/code` or `/access_token` answers `429` with "Access to this site
+has been restricted". The client treats that as temporary — it honours `Retry-After`, backs off up
+to 30 s, keeps polling, and says so in the card while it waits. Pasting a personal access token
+skips OAuth entirely.
+
 ## Limits
 
 - Only `.md`, `.markdown`, `.mdx` and `.txt` files are editable; the rest are listed but dimmed.
