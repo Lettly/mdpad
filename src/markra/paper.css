@@ -718,7 +718,22 @@
   }
 
   .markra-slash-menu-option {
-    @apply flex h-8 w-full cursor-pointer items-center rounded-md border-0 bg-transparent px-2.5 text-left text-[13px] leading-5 font-[560] tracking-normal text-(--text-primary) outline-none transition-[background-color,color] duration-150 ease-out;
+    @apply flex h-8 w-full cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-2 text-left text-[13px] leading-5 font-[560] tracking-normal text-(--text-primary) outline-none transition-[background-color,color] duration-150 ease-out;
+  }
+
+  .markra-slash-menu-icon,
+  .markra-context-icon {
+    @apply flex size-4 shrink-0 items-center justify-center text-(--text-secondary);
+  }
+
+  .markra-slash-menu-option:hover .markra-slash-menu-icon,
+  .markra-slash-menu-option[aria-selected="true"] .markra-slash-menu-icon {
+    @apply text-(--text-heading);
+  }
+
+  .markra-slash-menu-label,
+  .markra-context-label {
+    @apply min-w-0 flex-1 truncate;
   }
 
   .markra-slash-menu-option:hover,
@@ -734,21 +749,47 @@
     @apply fixed top-12 right-4 z-[55] flex items-center gap-1 rounded-lg border border-(--border-default) bg-(--bg-primary) p-1 shadow-(--ai-command-popover-shadow);
   }
 
-  .markra-plugin-selection-toolbar,
-  .markra-plugin-context-menu {
+  .markra-plugin-selection-toolbar {
     @apply fixed z-[65] flex min-w-40 flex-col gap-0.5 rounded-lg border border-(--border-default) bg-(--bg-primary) p-1 shadow-(--ai-command-popover-shadow);
+  }
+
+  .markra-plugin-context-menu {
+    @apply fixed z-[65] flex w-64 min-w-56 flex-col gap-0.5 overflow-y-auto rounded-lg border border-(--border-default) bg-(--bg-primary) p-1 shadow-(--ai-command-popover-shadow);
+  }
+
+  .markra-context-group {
+    @apply flex flex-col gap-0.5;
+  }
+
+  .markra-context-group-label {
+    @apply px-2 pt-1 pb-0.5 text-[10.5px] leading-4 font-[650] tracking-[0.08em] text-(--text-secondary) uppercase;
+  }
+
+  .markra-context-separator {
+    @apply my-1 h-px w-full bg-(--border-default);
   }
 
   .markra-plugin-toolbar button,
   .markra-plugin-selection-toolbar button,
   .markra-plugin-context-menu button {
-    @apply min-h-8 rounded-md border-0 bg-transparent px-2.5 text-left text-[13px] font-[560] text-(--text-primary);
+    @apply flex min-h-8 items-center gap-2 rounded-md border-0 bg-transparent px-2 text-left text-[13px] font-[560] text-(--text-primary);
   }
 
   .markra-plugin-toolbar button:hover,
   .markra-plugin-selection-toolbar button:hover,
-  .markra-plugin-context-menu button:hover {
+  .markra-plugin-context-menu button:hover,
+  .markra-plugin-context-menu button[data-active="true"] {
     @apply bg-(--bg-active) text-(--text-heading);
+  }
+
+  .markra-plugin-context-menu button[data-active="true"] .markra-context-icon,
+  .markra-plugin-context-menu button:hover .markra-context-icon {
+    @apply text-(--text-heading);
+  }
+
+  .markra-plugin-context-menu button:disabled,
+  .markra-plugin-context-menu button:disabled:hover {
+    @apply cursor-not-allowed bg-transparent text-(--text-primary) opacity-40;
   }
 
   .document-search-icon-button {

@@ -16,6 +16,7 @@ import {
   type CSSProperties,
   type MouseEvent,
 } from "react";
+import { EditorIcon } from "./editor-icons";
 
 export interface CodeMirrorEditorFloatingMenusProps {
   documentLinksLabel?: string;
@@ -59,7 +60,7 @@ export function fitCodeMirrorFloatingMenu(
   };
 }
 
-function useFloatingMenuStyle(
+export function useFloatingMenuStyle(
   anchor: FloatingMenuPoint | null,
   open: boolean,
   fallback: FloatingMenuSize,
@@ -206,7 +207,10 @@ export function CodeMirrorEditorFloatingMenus({
                 role="menuitem"
                 type="button"
               >
-                {action.label}
+                <span aria-hidden="true" className="markra-slash-menu-icon">
+                  <EditorIcon name={action.icon} />
+                </span>
+                <span className="markra-slash-menu-label">{action.label}</span>
               </button>
             ))
           ) : (

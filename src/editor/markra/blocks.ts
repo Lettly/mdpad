@@ -94,6 +94,7 @@ export function mdpadBlocksPlugin(): MarkraPlugin {
       {
         command: 'mdpad.divider',
         group: 'Blocks',
+        icon: 'minus',
         keywords: ['divider', 'rule', 'horizontal', 'separator'],
         label: 'Divider',
         order: 125,
@@ -102,6 +103,7 @@ export function mdpadBlocksPlugin(): MarkraPlugin {
       {
         command: 'mdpad.footnote',
         group: 'Blocks',
+        icon: 'superscript',
         keywords: ['footnote', 'reference', 'note'],
         label: 'Footnote',
         order: 140,
@@ -110,6 +112,7 @@ export function mdpadBlocksPlugin(): MarkraPlugin {
       {
         command: 'mdpad.math',
         group: 'Blocks',
+        icon: 'square-function',
         keywords: ['math', 'latex', 'formula', 'equation'],
         label: 'Math block',
         order: 145,
@@ -118,6 +121,7 @@ export function mdpadBlocksPlugin(): MarkraPlugin {
       {
         command: 'mdpad.key',
         group: 'Inline',
+        icon: 'keyboard',
         keywords: ['key', 'keyboard', 'kbd', 'shortcut'],
         label: 'Keyboard key',
         order: 150,

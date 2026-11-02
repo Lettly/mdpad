@@ -50,9 +50,9 @@ you get a conflict error; reload and re-apply.
 
 There is no toolbar: the surface is Markra's. Select text and the formatting menu appears above it
 (bold, italic, strikethrough, code, highlight, clear formatting, quote, lists, block type, link,
-copy). Typing `/` at the end of a line opens the block menu,
-which lists Markra's own commands (headings, lists, task list, quote, callout, table, code block)
-and the GitHub-flavoured blocks mdpad adds:
+copy). Typing `/` at the end of a line opens the block menu, each entry with its icon, which lists
+Markra's own commands (headings, lists, task list, quote, callout, table, code block) and the
+GitHub-flavoured blocks mdpad adds:
 
 | Entry | Inserts |
 | --- | --- |
@@ -61,6 +61,11 @@ and the GitHub-flavoured blocks mdpad adds:
 | Math block | `$$ … $$` |
 | Keyboard key | `<kbd>⌘</kbd>` |
 | Divider | `---` |
+
+Right-click anywhere on the surface for the same blocks, formatting for a selection, the clipboard,
+and **Open link** when the pointer is on a link. A right-click outside the selection moves the caret
+to the pointer; inside it, the selection is kept. Arrow keys and `Enter` pick an entry, and any other
+key closes the menu and goes to the editor.
 
 A collapsible section is one block: the summary and the content render as Markdown — nested
 sections, callouts, tables, code and raw HTML included — and the section folds as it does on

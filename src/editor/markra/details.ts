@@ -1960,6 +1960,7 @@ export function detailsPlugin(options: DetailsPluginOptions = {}): MarkraPlugin 
       {
         command: 'mdpad.details.insert',
         group: 'Blocks',
+        icon: 'chevrons-down-up',
         keywords: ['details', 'summary', 'collapse', 'disclosure', 'toggle'],
         label: 'Collapsible section',
         order: 135,
