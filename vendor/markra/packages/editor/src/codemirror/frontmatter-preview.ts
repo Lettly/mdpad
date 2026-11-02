@@ -44,6 +44,22 @@ function removeFrontmatter(
   return true;
 }
 
+/**
+ * Front matter is metadata, not prose: every document starts with it, so it
+ * opens folded to a one-line summary and unfolds on click. The choice is kept
+ * for the session so switching files does not unfold it again.
+ */
+let frontmatterExpanded = false;
+
+function frontmatterSummary(content: string): string {
+  const first = content
+    .split("\n")
+    .map((line) => line.trim())
+    .find(Boolean);
+  if (!first) return "";
+  return first.length > 90 ? `${first.slice(0, 89)}…` : first;
+}
+
 class FrontmatterWidget extends WidgetType {
   constructor(readonly range: CodeMirrorFrontmatterRange) {
     super();
@@ -65,11 +81,13 @@ class FrontmatterWidget extends WidgetType {
 
   private syncDOM(root: HTMLElement, view: CodeMirrorView) {
     const label = root.querySelector<HTMLElement>(".cm-markra-frontmatter-label");
+    const preview = root.querySelector<HTMLElement>(".cm-markra-frontmatter-preview");
     const editor = root.querySelector<HTMLTextAreaElement>(
       ".cm-markra-frontmatter-editor",
     );
     root.dataset.frontmatterKind = this.range.kind;
     label?.replaceChildren(this.range.kind.toUpperCase());
+    if (preview) preview.textContent = frontmatterSummary(this.range.content);
     if (editor && editor.value !== this.range.content) {
       editor.value = this.range.content;
     }
@@ -82,11 +100,18 @@ class FrontmatterWidget extends WidgetType {
   toDOM(view: CodeMirrorView) {
     const document = view.dom.ownerDocument;
     const root = document.createElement("div");
+    const head = document.createElement("div");
+    const toggle = document.createElement("button");
     const label = document.createElement("span");
+    const preview = document.createElement("span");
     const editor = document.createElement("textarea");
 
     root.className = "cm-markra-frontmatter markra-frontmatter";
     root.dataset.type = "frontmatter";
+    head.className = "cm-markra-frontmatter-head";
+    toggle.type = "button";
+    toggle.className = "cm-markra-frontmatter-toggle";
+    preview.className = "cm-markra-frontmatter-preview";
     label.className = "cm-markra-frontmatter-label";
     editor.className = "cm-markra-frontmatter-editor";
     editor.setAttribute(
@@ -151,7 +176,28 @@ class FrontmatterWidget extends WidgetType {
       if (composing || event.isComposing) return;
       syncEditorValue();
     });
-    root.append(label, editor);
+    const applyFold = () => {
+      root.dataset.collapsed = frontmatterExpanded ? "false" : "true";
+      toggle.textContent = frontmatterExpanded ? "▾" : "▸";
+      toggle.setAttribute("aria-expanded", String(frontmatterExpanded));
+      toggle.setAttribute(
+        "aria-label",
+        frontmatterExpanded ? "Hide front matter" : "Show front matter",
+      );
+      toggle.title = frontmatterExpanded ? "Hide front matter" : "Show front matter";
+    };
+    toggle.addEventListener("mousedown", (event) => event.preventDefault());
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      frontmatterExpanded = !frontmatterExpanded;
+      applyFold();
+      if (frontmatterExpanded) editor.focus({ preventScroll: true });
+    });
+
+    head.append(toggle, label, preview);
+    root.append(head, editor);
+    applyFold();
     this.syncDOM(root, view);
     return root;
   }
@@ -246,12 +292,46 @@ const frontmatterTheme = EditorView.baseTheme({
     whiteSpace: "pre-wrap",
     width: "100%",
   },
+  ".cm-markra-frontmatter-head": {
+    alignItems: "baseline",
+    display: "flex",
+    gap: "0.45em",
+    marginBottom: "0.4em",
+  },
+  ".cm-markra-frontmatter[data-collapsed='true'] .cm-markra-frontmatter-head": {
+    marginBottom: "0",
+  },
+  ".cm-markra-frontmatter[data-collapsed='true'] .cm-markra-frontmatter-editor": {
+    display: "none",
+  },
+  ".cm-markra-frontmatter[data-collapsed='false'] .cm-markra-frontmatter-preview": {
+    display: "none",
+  },
+  ".cm-markra-frontmatter-toggle": {
+    background: "transparent",
+    border: "0",
+    color: "inherit",
+    cursor: "pointer",
+    fontSize: "0.7em",
+    lineHeight: "1",
+    opacity: "0.6",
+    padding: "0",
+  },
+  ".cm-markra-frontmatter-preview": {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace",
+    fontSize: "0.78em",
+    opacity: "0.7",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
   ".cm-markra-frontmatter-label": {
     display: "block",
+    flex: "none",
     fontFamily: 'var(--font-ui, "Noto Sans SC Variable", sans-serif)',
     fontSize: "0.72em",
     fontWeight: "650",
-    marginBottom: "0.4em",
+    marginBottom: "0",
     opacity: "0.55",
   },
   ".cm-markra-frontmatter-editor": {

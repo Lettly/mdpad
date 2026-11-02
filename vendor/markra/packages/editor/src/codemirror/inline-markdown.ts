@@ -15,6 +15,7 @@ import {
   resolveAutolinkTarget,
   resolveSafeLinkTarget,
 } from "./links.ts";
+import { sanitizeRawHtml } from "../raw-html-sanitize.ts";
 import { unescapeMarkdown, unquoteMarkdownTitle } from "./syntax.ts";
 
 const inlineParser = parser.configure([GFM, markraHighlight]);
@@ -50,6 +51,66 @@ interface InlineMarkdownRenderContext {
   readonly mathRanges: readonly MarkraMathRange[];
   readonly options: InlineMarkdownRenderOptions;
   readonly revealedMathRange: MarkraSourceRange | null;
+  /** Open inline HTML tags (`<sub>`, `<sup>`, …) around the current node. */
+  readonly htmlStack: HTMLElement[];
+}
+
+/** Inline HTML tags that can wrap Markdown content in a paragraph or a cell. */
+const inlineHtmlTags = new Set([
+  "b",
+  "code",
+  "del",
+  "em",
+  "i",
+  "kbd",
+  "mark",
+  "s",
+  "small",
+  "span",
+  "strong",
+  "sub",
+  "sup",
+  "u",
+]);
+
+const closingHtmlTag = /^<\/([a-z][a-z\d]*)\s*>$/iu;
+const openingHtmlTag = /^<([a-z][a-z\d]*)(?:\s[^<>]*)?>$/iu;
+
+/**
+ * `<sub>…</sub>` in a paragraph or a table cell arrives as two separate tags.
+ * Opening tags become elements and following siblings render inside them, so
+ * the pair behaves like the HTML it is; closing tags pop the stack.
+ */
+function renderInlineHtmlTag(
+  parent: Node,
+  ownerDocument: Document,
+  raw: string,
+  context: InlineMarkdownRenderContext,
+): boolean {
+  const closing = closingHtmlTag.exec(raw);
+  if (closing) {
+    const name = closing[1]!.toLocaleLowerCase();
+    for (let index = context.htmlStack.length - 1; index >= 0; index -= 1) {
+      if (context.htmlStack[index]!.tagName.toLocaleLowerCase() === name) {
+        context.htmlStack.length = index;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const opening = openingHtmlTag.exec(raw);
+  if (!opening) return false;
+  const name = opening[1]!.toLocaleLowerCase();
+  if (!inlineHtmlTags.has(name)) return false;
+
+  const nodes = sanitizeRawHtml(raw, ownerDocument);
+  const element = nodes.find((node): node is HTMLElement => node instanceof HTMLElement);
+  if (!element) return false;
+
+  (context.htmlStack.at(-1) ?? parent).appendChild(element);
+  context.htmlStack.push(element);
+  return true;
 }
 
 function resolveLinkHref(
@@ -200,6 +261,7 @@ function renderRange(
   from: number,
   to: number,
   context: InlineMarkdownRenderContext,
+  direct = false,
 ) {
   let cursor = from;
   for (const child of childNodes(node)) {
@@ -226,8 +288,9 @@ function renderRange(
       cursor = crossingMath.to;
       continue;
     }
+    const target = direct ? context.htmlStack.at(-1) ?? parent : parent;
     appendTextWithMath(
-      parent,
+      target,
       ownerDocument,
       source,
       cursor,
@@ -236,18 +299,26 @@ function renderRange(
     );
     if (!markerNodes.has(child.name)) {
       renderNode(
-        parent,
+        target,
         ownerDocument,
         source,
         child,
         childFrom,
         childTo,
         context,
+        direct,
       );
     }
     cursor = Math.max(cursor, childTo);
   }
-  appendTextWithMath(parent, ownerDocument, source, cursor, to, context);
+  appendTextWithMath(
+    direct ? context.htmlStack.at(-1) ?? parent : parent,
+    ownerDocument,
+    source,
+    cursor,
+    to,
+    context,
+  );
 }
 
 function wrappedNode(
@@ -311,7 +382,9 @@ function renderLink(
     context,
   );
   parent.appendChild(element);
-  if (href) {
+  // A link with an empty label has nothing to mark: the icon alone would be a
+  // floating arrow with no text next to it.
+  if (href && labelTo > labelFrom) {
     const icon = ownerDocument.createElement("span");
     icon.ariaHidden = "true";
     icon.className = "markra-live-link-icon";
@@ -420,6 +493,7 @@ function renderNode(
   from = node.from,
   to = node.to,
   context: InlineMarkdownRenderContext,
+  direct = false,
 ) {
   switch (node.name) {
     case "StrongEmphasis":
@@ -460,15 +534,17 @@ function renderNode(
       }
       return;
     case "HTMLBlock":
-    case "HTMLTag":
-      if (htmlLineBreak.test(source.slice(from, to))) {
+    case "HTMLTag": {
+      const raw = source.slice(from, to);
+      if (htmlLineBreak.test(raw)) {
         const lineBreak = ownerDocument.createElement("br");
         lineBreak.dataset.markraSourceBreak = "true";
         parent.appendChild(lineBreak);
-      } else {
+      } else if (!direct || !renderInlineHtmlTag(parent, ownerDocument, raw, context)) {
         appendText(parent, source, from, to);
       }
       return;
+    }
     case "Escape":
       {
         const element = ownerDocument.createElement("span");
@@ -485,7 +561,7 @@ function renderNode(
       return;
     }
     default:
-      renderRange(parent, ownerDocument, source, node, from, to, context);
+      renderRange(parent, ownerDocument, source, node, from, to, context, direct);
   }
 }
 
@@ -526,6 +602,7 @@ export function renderInlineMarkdown(
       ].sort((left, right) => left.from - right.from)
     : detectedMathRanges;
   const context: InlineMarkdownRenderContext = {
+    htmlStack: [],
     mathMacros: createMarkraMathMacros(),
     mathRanges,
     options,
@@ -539,6 +616,7 @@ export function renderInlineMarkdown(
     0,
     source.length,
     context,
+    true,
   );
 }
 
@@ -608,6 +686,19 @@ function serializeNode(node: Node): string {
         content;
     case "BR":
       return "<br>";
+    case "SUB":
+    case "SUP":
+    case "KBD":
+    case "SMALL":
+    case "U": {
+      // No Markdown equivalent, so keep the tag the author wrote.
+      const tag = node.tagName.toLowerCase();
+      const attributes = Array.from(node.attributes)
+        .filter((attribute) => !attribute.name.startsWith("data-"))
+        .map((attribute) => ` ${attribute.name}="${attribute.value}"`)
+        .join("");
+      return `<${tag}${attributes}>${content}</${tag}>`;
+    }
     default:
       return content;
   }

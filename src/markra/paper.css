@@ -3007,6 +3007,12 @@
     word-break: normal;
   }
 
+  /* A header is a word, not a paragraph: let the column widen instead of
+     breaking "Windows" into "Window" and "s". */
+  .markdown-paper .markra-table-controls-wrapper[data-width-mode="auto"] .markra-table-scroll th {
+    overflow-wrap: normal;
+  }
+
   .markdown-paper th {
     @apply bg-(--bg-secondary) text-(--text-heading) font-[650];
     background: var(--editor-bg-secondary);
@@ -3677,6 +3683,12 @@
 
   .markdown-paper img:not(.cm-widgetBuffer) {
     @apply my-6 block max-w-full rounded-[3px] border border-(--border-default);
+  }
+
+  /* An image written inside a sentence (`<img align="absmiddle">` before a
+     tip) is part of the line, not a figure of its own. */
+  .markdown-paper img.cm-markra-inline-html {
+    @apply my-0 inline-block border-0 align-middle;
   }
 
   .markdown-paper .cm-markra-table img.cm-markra-table-image {
