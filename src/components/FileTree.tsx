@@ -14,6 +14,9 @@ export default function FileTree({ tree, selectedPath, onOpen, truncated }: Prop
   const listRef = useRef<HTMLDivElement>(null)
 
   const visible = useMemo(() => filterTree(tree, query), [tree, query])
+  // A filter is a search, not a folder to open: every folder that still has a
+  // match shows its matches instead of hiding them behind a collapsed row.
+  const filtering = query.trim().length > 0
 
   // Reveal the selected file whenever navigation happens elsewhere.
   useEffect(() => {
@@ -45,7 +48,7 @@ export default function FileTree({ tree, selectedPath, onOpen, truncated }: Prop
       const indent = { paddingLeft: `${8 + depth * 12}px` }
 
       if (node.type === 'dir') {
-        const isCollapsed = collapsed.has(node.path)
+        const isCollapsed = !filtering && collapsed.has(node.path)
         return (
           <div key={node.path}>
             <button

@@ -43,6 +43,8 @@ export type DetailsBlock = {
 
 export type DetailsPluginOptions = {
   openExternalUrl?: (url: string) => void
+  /** Opens a link as written; the app resolves it against the repository. */
+  openLink?: (href: string) => void
   resolveImageSrc?: (source: string) => string
   /** Maps a relative link onto somewhere the browser can open it. */
   resolveLinkHref?: (href: string) => string | null
@@ -726,6 +728,10 @@ class DetailsSummaryWidget extends WidgetType {
       event.stopPropagation()
       const href = anchor.getAttribute('href')?.trim() ?? ''
       if (!href || href.startsWith('#')) return
+      if (this.options.openLink) {
+        this.options.openLink(href)
+        return
+      }
       const resolved =
         this.options.resolveLinkHref?.(href) ?? (/^[a-z][a-z\d+.-]*:/i.test(href) ? href : null)
       if (resolved) this.options.openExternalUrl?.(resolved)
@@ -1162,6 +1168,10 @@ class DetailsWidget extends WidgetType {
         event.stopPropagation()
         const href = anchor.getAttribute('href')?.trim() ?? ''
         if (!href || href.startsWith('#')) return
+        if (this.options.openLink) {
+          this.options.openLink(href)
+          return
+        }
         const resolved =
           this.options.resolveLinkHref?.(href) ??
           (/^[a-z][a-z\d+.-]*:/i.test(href) ? href : null)

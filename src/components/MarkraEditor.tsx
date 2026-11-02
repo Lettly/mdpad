@@ -8,9 +8,16 @@ import { SelectionToolbar } from '../markra/chrome/SelectionToolbar'
 import { detailsPlugin, resetDetailsState } from '../editor/markra/details'
 import { insertBlockText, insertInlineText, mdpadBlocksPlugin } from '../editor/markra/blocks'
 import { mdpadUploadPlugin } from '../editor/markra/upload'
-import { resolveImage, resolveRepoPath, type ImageLocation } from '../lib/images'
+import { resolveImage, type ImageLocation } from '../lib/images'
 
 export type EditorMode = 'wysiwyg' | 'markdown'
+
+/** The `src` of an `<img …>` tag kept as source by the raw HTML renderer. */
+function inlineHtmlImageSource(markup: string): string | null {
+  const match = /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(markup)
+  const value = (match?.[1] ?? match?.[2] ?? match?.[3])?.trim()
+  return value || null
+}
 
 export type EditorApi = {
   setValue: (markdown: string) => void
@@ -32,6 +39,8 @@ type Props = {
   onReady: (api: EditorApi | null) => void
   /** Opens the upload dialog from the editor's slash and right-click menus. */
   onUpload: () => void
+  /** Opens a link written in the document; mdpad maps it onto the repository. */
+  onOpenLink?: (href: string) => void
 }
 
 /** Markra's paper shell: the same wrappers, utilities and spacing as its app. */
@@ -52,6 +61,7 @@ export default function MarkraEditor({
   onSync,
   onReady,
   onUpload,
+  onOpenLink,
 }: Props) {
   const viewRef = useRef<EditorView | null>(null)
   const [editorView, setEditorView] = useState<EditorView | null>(null)
@@ -65,6 +75,9 @@ export default function MarkraEditor({
   onReadyRef.current = onReady
   onUploadRef.current = onUpload
 
+  const onOpenLinkRef = useRef(onOpenLink)
+  onOpenLinkRef.current = onOpenLink
+
   const imageLocationRef = useRef(imageLocation)
   imageLocationRef.current = imageLocation
 
@@ -74,8 +87,12 @@ export default function MarkraEditor({
   modeRef.current = mode
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  const refreshImagesRef = useRef<() => void>(() => {})
+
   // Renderers only re-run on a document change, so a private image that arrives
   // after the first paint needs a nudge that leaves the text and undo untouched.
+  // Inline HTML keeps its widget when only the resolved image changed, so those
+  // elements are filled in directly.
   const refreshImages = useCallback(() => {
     const view = viewRef.current
     if (!view || view.state.doc.length === 0 || view.composing) return
@@ -83,47 +100,50 @@ export default function MarkraEditor({
     const quiet = Transaction.addToHistory.of(false)
     view.dispatch({ annotations: quiet, changes: { from: 0, insert: ' ' } })
     view.dispatch({ annotations: quiet, changes: { from: 0, insert: '', to: 1 } })
-  }, [])
-
-  const resolveImageSrc = useCallback(
-    (source: string) => {
-      const location = imageLocationRef.current
-      // No repository yet: absolute URLs still work, everything else stays
-      // as source rather than as a broken image.
-      if (!location) return /^(?:https?:|data:|blob:)/i.test(source.trim()) ? source : ''
-      return resolveImage(location, source, refreshImages) ?? ''
-    },
-    [refreshImages],
-  )
-
-  // A link inside a section body cannot go through the editor's link plugin:
-  // it is rendered DOM, not Markdown text. External links open in a tab, and a
-  // relative path opens its page on GitHub, where the branch is correct.
-  const resolveDetailsLink = useCallback((href: string) => {
-    if (/^[a-z][a-z\d+.-]*:/i.test(href) || href.startsWith('//')) return href
-    if (href.startsWith('#')) return null
 
     const location = imageLocationRef.current
-    if (!location) return null
+    if (!location) return
 
-    const path = resolveRepoPath(location.documentPath, href)
-    if (!path) return null
-
-    const encoded = path.split('/').map(encodeURIComponent).join('/')
-    return `https://github.com/${location.owner}/${location.repo}/blob/${encodeURIComponent(location.branch)}/${encoded}`
+    for (const image of view.contentDOM.querySelectorAll<HTMLImageElement>('img')) {
+      if (image.getAttribute('src')) continue
+      const markup =
+        image.dataset.value ?? image.closest<HTMLElement>('[data-value]')?.dataset.value
+      const source = inlineHtmlImageSource(markup ?? '')
+      if (!source) continue
+      const resolved = resolveImage(location, source, () => refreshImagesRef.current())
+      if (resolved) image.src = resolved
+    }
   }, [])
 
-  const openDetailsLink = useCallback((url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer')
+  refreshImagesRef.current = refreshImages
+
+  const resolveImageSrc = useCallback((source: string) => {
+    const location = imageLocationRef.current
+    // No repository yet: absolute URLs still work, everything else stays
+    // as source rather than as a broken image.
+    if (!location) return /^(?:https?:|data:|blob:)/i.test(source.trim()) ? source : ''
+    return resolveImage(location, source, () => refreshImagesRef.current()) ?? ''
+  }, [])
+
+  // Links come out of the document as written, so the app decides where they
+  // go: a repository path is opened here or on GitHub, a URL in a new tab.
+  const openDocumentLink = useCallback((href: string) => {
+    if (onOpenLinkRef.current) {
+      onOpenLinkRef.current(href)
+      return
+    }
+    if (/^(?:https?:|mailto:|tel:)/i.test(href) || href.startsWith('//')) {
+      window.open(href, '_blank', 'noopener,noreferrer')
+    }
   }, [])
 
   // Markra's plugins are built into its surface; mdpad only adds the ones it
   // owns: collapsible sections, the extra block commands, and uploads.
   const plugins = useRef([
     detailsPlugin({
-      openExternalUrl: openDetailsLink,
+      openExternalUrl: openDocumentLink,
+      openLink: openDocumentLink,
       resolveImageSrc,
-      resolveLinkHref: resolveDetailsLink,
     }),
     mdpadBlocksPlugin(),
     mdpadUploadPlugin({ onUpload: () => onUploadRef.current() }),
@@ -206,7 +226,7 @@ export default function MarkraEditor({
               language="en"
               onEditorReady={handleReady}
               onMarkdownChange={(markdown) => onChangeRef.current(markdown)}
-              openExternalUrl={openDetailsLink}
+              openExternalUrl={openDocumentLink}
               paragraphSpacingPx={8}
               plugins={plugins}
               resolveImageSrc={resolveImageSrc}

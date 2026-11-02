@@ -102,6 +102,21 @@ export function filePaths(nodes: TreeNode[]): string[] {
   return out
 }
 
+/** The node at `path`, so a route can tell a folder from a file. */
+export function findNode(nodes: TreeNode[], path: string): TreeNode | null {
+  const parts = path.split('/').filter(Boolean)
+  let level = nodes
+  let found: TreeNode | null = null
+
+  for (const part of parts) {
+    found = level.find((node) => node.name === part) ?? null
+    if (!found) return null
+    level = found.children
+  }
+
+  return found
+}
+
 /** Directory paths that must be expanded to reveal `path`. */
 export function ancestorsOf(path: string): string[] {
   const parts = path.split('/').slice(0, -1)

@@ -715,6 +715,98 @@ code {
   color: var(--danger) !important;
 }
 
+/* ------------------------------------------------------------ folder pane */
+
+.folder-pane {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.folder-inner {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.folder-eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.folder-title {
+  margin: 0 0 6px;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.folder-summary {
+  margin: 0 0 22px;
+  font-size: 0.82rem;
+  color: var(--fg-muted);
+}
+
+.folder-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.folder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.folder-row:hover {
+  background: var(--bg-inset);
+}
+
+.folder-row.is-folder .folder-row-name {
+  font-weight: 600;
+}
+
+.folder-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-row-meta {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--fg-faint);
+}
+
+/* Files drawer, for windows too narrow to hold a fixed sidebar. */
+
+.files-toggle {
+  display: none;
+}
+
+.sidebar-scrim {
+  display: none;
+}
+
 .spinner {
   width: 18px;
   height: 18px;
@@ -1425,6 +1517,61 @@ code {
 
 /* --------------------------------------------------------------- narrow */
 
+@media (max-width: 900px) {
+  .files-toggle {
+    display: inline-flex;
+  }
+
+  .sidebar {
+    position: fixed;
+    z-index: 40;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(300px, 86vw);
+    transform: translateX(-100%);
+    transition: transform 0.18s ease;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+  }
+
+  .workspace.sidebar-open .sidebar {
+    transform: none;
+  }
+
+  .workspace.sidebar-open .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    border: 0;
+    padding: 0;
+    background: rgba(15, 23, 42, 0.28);
+    cursor: default;
+  }
+
+  .crumbs {
+    flex: 1 1 auto;
+  }
+
+  .crumb {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pane-actions {
+    flex: none;
+    gap: 8px;
+  }
+
+  .pill {
+    display: none;
+  }
+
+  .repo-chip {
+    max-width: 30vw;
+  }
+}
+
 @media (max-width: 760px) {
   :root {
     --sidebar: 210px;
@@ -1443,5 +1590,34 @@ code {
   .raw-editor {
     padding-left: 18px;
     padding-right: 18px;
+  }
+}
+
+@media (max-width: 620px) {
+  .topbar {
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  .slash,
+  .repo-chip {
+    display: none;
+  }
+
+  .branch-select {
+    max-width: 92px;
+  }
+
+  .pane-head {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .crumbs .crumb:not(:last-child) {
+    display: none;
+  }
+
+  .pane-actions .btn-quiet {
+    display: none;
   }
 }

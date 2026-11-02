@@ -19,7 +19,13 @@ import {
   type Repo,
 } from './lib/github'
 import { parseRepoLink } from './lib/githubUrl'
-import { buildTree, isEditable, type TreeNode } from './lib/tree'
+import { buildTree, filePaths, findNode, isEditable, type TreeNode } from './lib/tree'
+import {
+  githubBlobUrl,
+  isMarkdownPath,
+  resolveDocumentLink,
+} from './lib/documentLinks'
+import { resolveRepoPath } from './lib/images'
 import { readRoute, routeToHash, type Route } from './lib/route'
 import { loadTheme, loadToken, saveTheme, saveToken, type Theme } from './lib/storage'
 import { markdownForUpload, folderOf, type UploadItem } from './lib/upload'
@@ -70,6 +76,7 @@ export default function App() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [filesOpen, setFilesOpen] = useState(false)
   const [toast, setToast] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null)
 
   const sessionRef = useRef<Session | null>(null)
@@ -169,6 +176,108 @@ export default function App() {
     return true
   }, [])
 
+  /** The folder a route points at, so a directory is never read as a file. */
+  const folder = useMemo<TreeNode | null>(() => {
+    if (!session) return null
+    if (!route?.path) {
+      return { name: session.repo.full_name, path: '', type: 'dir', children: session.tree }
+    }
+    const node = findNode(session.tree, route.path)
+    return node?.type === 'dir' ? node : null
+  }, [session, route?.path])
+
+  const isFolder = folder !== null
+
+  const documentPaths = useMemo(
+    () => new Set(session ? filePaths(session.tree) : []),
+    [session],
+  )
+
+  /**
+   * Links in a document are repository paths, not app URLs. A Markdown file
+   * opens here, any other file opens on GitHub, and a real URL opens in a tab.
+   */
+  const openDocumentLink = useCallback(
+    (href: string) => {
+      const current = sessionRef.current
+      const target = resolveDocumentLink(
+        href,
+        doc?.path ?? null,
+        documentPaths,
+        resolveRepoPath,
+      )
+      if (!target) return
+
+      if (target.kind === 'url') {
+        window.open(target.url, '_blank', 'noopener,noreferrer')
+        return
+      }
+      if (!current) return
+
+      if (target.kind === 'missing') {
+        // A truncated listing cannot prove a file is gone; GitHub can.
+        if (current.truncated) {
+          window.open(
+            githubBlobUrl(
+              current.repo.owner.login,
+              current.repo.name,
+              current.branch,
+              target.href.replace(/^\/+/, ''),
+            ),
+            '_blank',
+            'noopener,noreferrer',
+          )
+          return
+        }
+        showToast(`No file in this repository matches ${target.href}`, 'error')
+        return
+      }
+
+      if (target.kind === 'file') {
+        if (target.path === doc?.path) return
+        navigate({
+          owner: current.repo.owner.login,
+          repo: current.repo.name,
+          branch: current.branch,
+          path: target.path,
+        })
+        return
+      }
+
+      window.open(
+        githubBlobUrl(
+          current.repo.owner.login,
+          current.repo.name,
+          current.branch,
+          target.path,
+        ),
+        '_blank',
+        'noopener,noreferrer',
+      )
+    },
+    [doc?.path, documentPaths, navigate, showToast],
+  )
+
+// Several articles in tabs are indistinguishable when every tab says "mdpad".
+  useEffect(() => {
+    const name = doc?.path.split('/').pop() ?? folder?.name ?? null
+    document.title = name ? `${name} · mdpad` : 'mdpad'
+  }, [doc?.path, folder?.name])
+
+  // A repository root is a landing page on GitHub, not an empty editor: open
+  // the README rather than asking people to find it in the sidebar.
+  useEffect(() => {
+    if (!session || !route || route.path || repoLoading) return
+    const readme = session.tree.find(
+      (node) => node.type === 'file' && /^readme\.md$/i.test(node.name),
+    )
+    if (!readme) return
+
+    const next: Route = { ...route, path: readme.path }
+    window.history.replaceState(null, '', routeToHash(next))
+    setRoute(next)
+  }, [session, route, repoLoading])
+
   /* ---------------------------------------------------------------- repo */
 
   useEffect(() => {
@@ -238,6 +347,14 @@ export default function App() {
       return
     }
 
+    // A folder is shown as a listing, not read as a file.
+    if (isFolder) {
+      setDoc(null)
+      setText('')
+      setFileError(null)
+      return
+    }
+
     const path = route.path
     if (!isEditable(path)) {
       setDoc(null)
@@ -272,7 +389,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [token, repoOwner, repoName, branch, route?.path, fileReload])
+  }, [token, repoOwner, repoName, branch, route?.path, fileReload, isFolder])
 
   /* -------------------------------------------------------------- editor */
 
@@ -319,11 +436,13 @@ export default function App() {
 
   const openRepo = (owner: string, repo: string, branch?: string, path?: string) => {
     setOpenRepoOpen(false)
+    setFilesOpen(false)
     navigate({ owner, repo, branch, path })
   }
 
   const openFile = (path: string) => {
     const current = sessionRef.current
+    setFilesOpen(false)
     if (!current || path === route?.path) return
     navigate({
       owner: current.repo.owner.login,
@@ -483,6 +602,16 @@ export default function App() {
           </button>
 
           {session ? (
+            <button
+              className="btn btn-quiet files-toggle"
+              aria-expanded={filesOpen}
+              onClick={() => setFilesOpen((open) => !open)}
+            >
+              Files
+            </button>
+          ) : null}
+
+          {session ? (
             <>
               <span className="slash">/</span>
               <button
@@ -558,7 +687,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="workspace">
+      <div className={filesOpen ? 'workspace sidebar-open' : 'workspace'}>
         {session ? (
           <FileTree
             key={`${session.repo.full_name}@${session.branch}`}
@@ -568,6 +697,11 @@ export default function App() {
             truncated={session.truncated}
           />
         ) : null}
+        <button
+          className="sidebar-scrim"
+          aria-label="Close files"
+          onClick={() => setFilesOpen(false)}
+        />
 
         <main className="main">
           {!route ? (
@@ -603,14 +737,22 @@ export default function App() {
                       </button>
                     </>
                   ) : null}
-                  <div className="segmented" role="group" aria-label="Editor mode">
-                    <button aria-pressed={mode === 'wysiwyg'} onClick={() => requestMode('wysiwyg')}>
-                      WYSIWYG
-                    </button>
-                    <button aria-pressed={mode === 'markdown'} onClick={() => requestMode('markdown')}>
-                      Markdown
-                    </button>
-                  </div>
+                  {doc ? (
+                    <div className="segmented" role="group" aria-label="Editor mode">
+                      <button
+                        aria-pressed={mode === 'wysiwyg'}
+                        onClick={() => requestMode('wysiwyg')}
+                      >
+                        WYSIWYG
+                      </button>
+                      <button
+                        aria-pressed={mode === 'markdown'}
+                        onClick={() => requestMode('markdown')}
+                      >
+                        Markdown
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -628,7 +770,17 @@ export default function App() {
                   />
                 ) : null}
 
-                {!repoLoading && !repoError && !route.path ? <Placeholder session={session} /> : null}
+                {!repoLoading && !repoError && !route.path && !folder ? (
+                  <Placeholder session={session} />
+                ) : null}
+
+                {!repoLoading && !repoError && folder ? (
+                  <FolderPane
+                    node={folder}
+                    root={!route.path}
+                    onOpen={openFile}
+                  />
+                ) : null}
 
                 {!repoLoading && !repoError && route.path && fileLoading && !doc ? (
                   <Loading label="Opening file…" />
@@ -676,6 +828,7 @@ export default function App() {
                       value={text}
                       onChange={setText}
                       onSync={handleSync}
+                      onOpenLink={openDocumentLink}
                       onReady={handleReady}
                       onUpload={() => uploadPicker.current?.click()}
                     />
@@ -802,6 +955,63 @@ function ErrorPane({ message, onRetry }: { message: string; onRetry: () => void 
         Try again
       </button>
     </div>
+  )
+}
+
+function FolderPane({
+  node,
+  root,
+  onOpen,
+}: {
+  node: TreeNode
+  root: boolean
+  onOpen: (path: string) => void
+}) {
+  const folders = node.children.filter((child) => child.type === 'dir')
+  const files = node.children.filter((child) => child.type === 'file')
+  const markdown = files.filter((file) => isMarkdownPath(file.path))
+  const others = files.length - markdown.length
+  const articles = countMarkdown(node)
+
+  return (
+    <div className="folder-pane">
+      <div className="folder-inner">
+        <p className="folder-eyebrow">{root ? 'Repository root' : 'Folder'}</p>
+        <h1 className="folder-title">{root ? node.name : node.name}</h1>
+        <p className="folder-summary">
+          {folders.length} folder{folders.length === 1 ? '' : 's'} · {articles} article
+          {articles === 1 ? '' : 's'}
+          {others > 0 ? ` · ${others} other file${others === 1 ? '' : 's'}` : ''}
+        </p>
+
+        <ul className="folder-list">
+          {folders.map((child) => (
+            <li key={child.path}>
+              <button className="folder-row is-folder" onClick={() => onOpen(child.path)}>
+                <span className="folder-row-name">{child.name}</span>
+                <span className="folder-row-meta">{countMarkdown(child)}</span>
+              </button>
+            </li>
+          ))}
+          {markdown.map((file) => (
+            <li key={file.path}>
+              <button className="folder-row" onClick={() => onOpen(file.path)}>
+                <span className="folder-row-name">{file.name.replace(/\.md$/i, '')}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+function countMarkdown(node: TreeNode): number {
+  return node.children.reduce(
+    (total, child) =>
+      total +
+      (child.type === 'file' ? (isMarkdownPath(child.path) ? 1 : 0) : countMarkdown(child)),
+    0,
   )
 }
 
